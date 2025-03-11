@@ -1,16 +1,19 @@
 import Head from 'next/head'
+import { Navbar } from '@/components/layout/Navbar'
+import { HeroSection } from '@/components/home/HeroSection'
 
 export default function Home() {
   return (
     <>
       <Head>
-        <title>Hello World</title>
-        <meta name="description" content="A simple Hello World page" />
+        <title>AIFluencer - Create Your Perfect Virtual Influencer</title>
+        <meta name="description" content="Generate unique, photorealistic AI influencers for your brand using advanced AI technology." />
         <link rel="icon" href="/favicon.ico" />
       </Head>
       
-      <main className="flex items-center justify-center min-h-screen">
-        <h1 className="text-4xl font-bold">Hello World</h1>
+      <Navbar />
+      <main>
+        <HeroSection />
       </main>
     </>
   )
