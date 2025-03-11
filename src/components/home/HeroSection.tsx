@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Sparkles } from "lucide-react"
 import Image from 'next/image'
+import Link from 'next/link'
+import { ImagePreviewModal } from '@/components/gallery/ImagePreviewModal'
+import { useState } from 'react'
 
 export const HeroSection = () => {
   const examples = [
@@ -8,6 +11,8 @@ export const HeroSection = () => {
     '/photo-6-m84jbhjp.jpeg',
     '/photo-7-m84jo0h1.jpeg'
   ]
+
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
   return (
     <div className='relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-background to-background/95'>
@@ -26,18 +31,26 @@ export const HeroSection = () => {
         </p>
 
         <div className='flex flex-col sm:flex-row gap-4 w-full justify-center'>
-          <Button size='lg' className='bg-gradient-to-r from-purple-600 to-pink-600 text-white'>
-            Start Creating <ArrowRight className='ml-2 w-4 h-4' />
-          </Button>
-          <Button size='lg' variant='outline'>
-            View Success Stories
-          </Button>
+          <Link href='/generate'>
+            <Button size='lg' className='bg-gradient-to-r from-purple-600 to-pink-600 text-white'>
+              Start Creating <ArrowRight className='ml-2 w-4 h-4' />
+            </Button>
+          </Link>
+          <Link href='/gallery'>
+            <Button size='lg' variant='outline'>
+              View Gallery
+            </Button>
+          </Link>
         </div>
 
         <div className='w-full max-w-5xl mt-12 overflow-hidden'>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
             {examples.map((src, i) => (
-              <div key={i} className='relative aspect-[4/5] rounded-lg overflow-hidden'>
+              <div 
+                key={i} 
+                className='relative aspect-[4/5] rounded-lg overflow-hidden cursor-pointer'
+                onClick={() => setSelectedImage(src)}
+              >
                 <Image
                   src={src}
                   alt={`AI Influencer Example ${i + 1}`}
@@ -49,6 +62,14 @@ export const HeroSection = () => {
             ))}
           </div>
         </div>
+
+        {selectedImage && (
+          <ImagePreviewModal
+            isOpen={!!selectedImage}
+            onClose={() => setSelectedImage(null)}
+            imageSrc={selectedImage}
+          />
+        )}
       </div>
     </div>
   )
