@@ -15,52 +15,44 @@ export const Navbar = () => {
           </span>
         </Link>
 
-        <NavigationMenu>
-          <NavigationMenuList className='hidden md:flex gap-6'>
-            <NavigationMenuItem>
-              <Link 
-                href='/generate' 
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  router.pathname === '/generate' ? 'text-primary' : ''
-                }`}
-              >
-                Create
-              </Link>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <Link 
-                href='/gallery' 
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  router.pathname === '/gallery' ? 'text-primary' : ''
-                }`}
-              >
-                Gallery
-              </Link>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <Link 
-                href='/pricing' 
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  router.pathname === '/pricing' ? 'text-primary' : ''
-                }`}
-              >
-                Pricing
-              </Link>
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
+        <div className='hidden md:flex gap-6'>
+          <Button variant='ghost' asChild>
+            <Link 
+              href='/generate'
+              className={router.pathname === '/generate' ? 'text-primary' : ''}
+            >
+              Create
+            </Link>
+          </Button>
+          <Button variant='ghost' asChild>
+            <Link 
+              href='/gallery'
+              className={router.pathname === '/gallery' ? 'text-primary' : ''}
+            >
+              Gallery
+            </Link>
+          </Button>
+          <Button variant='ghost' asChild>
+            <Link 
+              href='/pricing'
+              className={router.pathname === '/pricing' ? 'text-primary' : ''}
+            >
+              Pricing
+            </Link>
+          </Button>
+        </div>
 
         <div className='flex items-center gap-4'>
-          <Link href='/login'>
-            <Button variant='ghost' size='sm'>
+          <Button variant='ghost' size='sm' asChild>
+            <Link href='/login'>
               Sign In
-            </Button>
-          </Link>
-          <Link href='/generate'>
-            <Button size='sm' className='bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90 transition-opacity'>
+            </Link>
+          </Button>
+          <Button size='sm' className='bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90 transition-opacity' asChild>
+            <Link href='/generate'>
               Get Started
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
     </header>
