@@ -1,9 +1,9 @@
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Check } from "lucide-react"
 import { Navbar } from "@/components/layout/Navbar"
 import Head from "next/head"
+import { ComparisonTable } from '@/components/pricing/ComparisonTable'
 
 export default function PricingPage() {
   const tiers = [
@@ -121,6 +121,11 @@ export default function PricingPage() {
                 </CardFooter>
               </Card>
             ))}
+          </div>
+
+          <div className='mt-16'>
+            <h2 className='text-2xl font-bold mb-6 text-center'>Compare All Features</h2>
+            <ComparisonTable />
           </div>
 
           <div className="mt-16 text-center">

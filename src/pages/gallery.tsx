@@ -8,9 +8,11 @@ import { Search, Filter, SlidersHorizontal } from "lucide-react"
 import Head from "next/head"
 import Image from "next/image"
 import { useState } from "react"
+import { ImagePreviewModal } from '@/components/gallery/ImagePreviewModal'
 
 export default function GalleryPage() {
   const [showFilters, setShowFilters] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
   
   const galleryImages = [
     '/photo-8-m84j64ee.jpeg',
@@ -90,23 +92,35 @@ export default function GalleryPage() {
               </Card>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
               {galleryImages.map((src, i) => (
-                <Card key={i} className="overflow-hidden group cursor-pointer hover:shadow-lg transition-all">
-                  <CardContent className="p-0">
-                    <div className="relative aspect-[4/5] bg-muted/50">
+                <Card 
+                  key={i} 
+                  className='overflow-hidden group cursor-pointer hover:shadow-lg transition-all'
+                  onClick={() => setSelectedImage(src)}
+                >
+                  <CardContent className='p-0'>
+                    <div className='relative aspect-[4/5] bg-muted/50'>
                       <Image
                         src={src}
                         alt={`AI Influencer ${i + 1}`}
                         fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                        className='object-cover transition-transform duration-300 group-hover:scale-105'
+                        sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw'
                       />
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
+
+            {selectedImage && (
+              <ImagePreviewModal
+                isOpen={!!selectedImage}
+                onClose={() => setSelectedImage(null)}
+                imageSrc={selectedImage}
+              />
+            )}
 
             <div className="flex justify-center">
               <Button variant="outline" size="lg">
