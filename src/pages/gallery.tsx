@@ -1,12 +1,20 @@
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Navbar } from "@/components/layout/Navbar"
 import { Search, Filter } from "lucide-react"
 import Head from "next/head"
+import Image from "next/image"
 
 export default function GalleryPage() {
+  const galleryImages = [
+    '/photo-8-m84j64ee.jpeg',
+    'https://images.unsplash.com/photo-1614644147798-f8c0fc9da7f6',
+    'https://images.unsplash.com/photo-1618641986557-1ecd230959aa',
+    // Repeat the pattern for 12 items
+    ...Array(9).fill('').map(() => '/photo-8-m84j64ee.jpeg')
+  ]
+
   return (
     <>
       <Head>
@@ -32,11 +40,17 @@ export default function GalleryPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <Card key={i} className="overflow-hidden">
+              {galleryImages.map((src, i) => (
+                <Card key={i} className="overflow-hidden group cursor-pointer">
                   <CardContent className="p-0">
-                    <div className="aspect-[4/5] bg-muted/50 flex items-center justify-center">
-                      <span className="text-muted-foreground">Influencer {i + 1}</span>
+                    <div className="relative aspect-[4/5] bg-muted/50">
+                      <Image
+                        src={src}
+                        alt={`AI Influencer ${i + 1}`}
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      />
                     </div>
                   </CardContent>
                 </Card>

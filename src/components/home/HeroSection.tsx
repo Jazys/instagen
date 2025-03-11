@@ -1,7 +1,14 @@
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Sparkles } from "lucide-react"
+import Image from 'next/image'
 
 export const HeroSection = () => {
+  const examples = [
+    '/photo-8-m84j64ee.jpeg',
+    'https://images.unsplash.com/photo-1614644147798-f8c0fc9da7f6',
+    'https://images.unsplash.com/photo-1618641986557-1ecd230959aa',
+  ]
+
   return (
     <div className='relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-background to-background/95'>
       <div className='container px-4 md:px-6 flex flex-col items-center text-center gap-8 pt-24'>
@@ -27,16 +34,19 @@ export const HeroSection = () => {
           </Button>
         </div>
 
-        <div className='w-full max-w-5xl aspect-[2/1] rounded-lg border bg-muted/50 mt-12 overflow-hidden'>
-          <div className='w-full h-full flex items-center justify-center text-muted-foreground'>
-            {/* Add a grid of AI-generated influencer examples */}
-            <div className='grid grid-cols-3 gap-4 p-4 w-full h-full'>
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className='aspect-square rounded-lg bg-muted flex items-center justify-center'>
-                  Example {i + 1}
-                </div>
-              ))}
-            </div>
+        <div className='w-full max-w-5xl mt-12 overflow-hidden'>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            {examples.map((src, i) => (
+              <div key={i} className='relative aspect-[4/5] rounded-lg overflow-hidden'>
+                <Image
+                  src={src}
+                  alt={`AI Influencer Example ${i + 1}`}
+                  fill
+                  className='object-cover hover:scale-105 transition-transform duration-300'
+                  sizes='(max-width: 768px) 100vw, 33vw'
+                />
+              </div>
+            ))}
           </div>
         </div>
       </div>
