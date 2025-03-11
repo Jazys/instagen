@@ -1,4 +1,5 @@
-cat: can't open '/app/src/next.config.mjs': No such file or directory
+
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
     domains: [
@@ -11,3 +12,5 @@ const nextConfig = {
     ]
   }
 };
+
+export default nextConfig;
