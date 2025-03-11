@@ -10,10 +10,10 @@ export default function GalleryPage() {
   const galleryImages = [
     '/photo-8-m84j64ee.jpeg',
     '/photo-6-m84jbhjp.jpeg',
-    'https://images.unsplash.com/photo-1614644147798-f8c0fc9da7f6',
+    '/photo-7-m84jo0h1.jpeg',
     'https://images.unsplash.com/photo-1618641986557-1ecd230959aa',
     // Repeat the pattern for remaining items
-    ...Array(8).fill('').map((_, i) => i % 2 === 0 ? '/photo-8-m84j64ee.jpeg' : '/photo-6-m84jbhjp.jpeg')
+    ...Array(8).fill('').map((_, i) => i % 3 === 0 ? '/photo-8-m84j64ee.jpeg' : i % 3 === 1 ? '/photo-6-m84jbhjp.jpeg' : '/photo-7-m84jo0h1.jpeg')
   ]
 
   return (

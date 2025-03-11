@@ -6,7 +6,7 @@ export const HeroSection = () => {
   const examples = [
     '/photo-8-m84j64ee.jpeg',
     '/photo-6-m84jbhjp.jpeg',
-    'https://images.unsplash.com/photo-1614644147798-f8c0fc9da7f6',
+    '/photo-7-m84jo0h1.jpeg'
   ]
 
   return (

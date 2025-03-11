@@ -43,7 +43,7 @@ export const PreviewSection = () => {
           <TabsContent value='lifestyle'>
             <div className='relative aspect-video rounded-lg overflow-hidden'>
               <Image
-                src='https://images.unsplash.com/photo-1614644147798-f8c0fc9da7f6'
+                src='/photo-7-m84jo0h1.jpeg'
                 alt='Lifestyle Preview'
                 fill
                 className='object-cover'
