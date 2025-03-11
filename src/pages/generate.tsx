@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
@@ -9,24 +8,27 @@ import { GeneratorForm } from "@/components/generator/GeneratorForm"
 import { PreviewSection } from "@/components/generator/PreviewSection"
 import { Navbar } from "@/components/layout/Navbar"
 import Head from "next/head"
+import { useState } from 'react'
 
 export default function GeneratePage() {
+  const [currentImage, setCurrentImage] = useState('/photo-8-m84j64ee.jpeg')
+
   return (
     <>
       <Head>
         <title>Create Your AI Influencer - AIFluencer</title>
-        <meta name="description" content="Generate and customize your perfect AI influencer with our advanced AI technology." />
+        <meta name='description' content='Generate and customize your perfect AI influencer with our advanced AI technology.' />
       </Head>
       
       <Navbar />
-      <main className="pt-24 min-h-screen bg-gradient-to-b from-background to-background/95">
-        <div className="container py-8">
-          <div className="flex flex-col md:flex-row gap-8">
-            <div className="w-full md:w-1/3">
-              <GeneratorForm />
+      <main className='pt-24 min-h-screen bg-gradient-to-b from-background to-background/95'>
+        <div className='container py-8'>
+          <div className='flex flex-col md:flex-row gap-8'>
+            <div className='w-full md:w-1/3'>
+              <GeneratorForm onGenerate={setCurrentImage} />
             </div>
-            <div className="w-full md:w-2/3">
-              <PreviewSection />
+            <div className='w-full md:w-2/3'>
+              <PreviewSection currentImage={currentImage} />
             </div>
           </div>
         </div>

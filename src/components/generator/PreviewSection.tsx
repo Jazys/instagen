@@ -2,7 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from 'next/image'
 
-export const PreviewSection = () => {
+interface PreviewSectionProps {
+  currentImage: string
+}
+
+export const PreviewSection = ({ currentImage }: PreviewSectionProps) => {
   return (
     <Card>
       <CardHeader>
@@ -19,7 +23,7 @@ export const PreviewSection = () => {
           <TabsContent value='portrait'>
             <div className='relative aspect-square rounded-lg overflow-hidden'>
               <Image
-                src='/photo-8-m84j64ee.jpeg'
+                src={currentImage}
                 alt='Portrait Preview'
                 fill
                 className='object-cover'
@@ -31,7 +35,7 @@ export const PreviewSection = () => {
           <TabsContent value='full-body'>
             <div className='relative aspect-[3/4] rounded-lg overflow-hidden'>
               <Image
-                src='/photo-6-m84jbhjp.jpeg'
+                src={currentImage}
                 alt='Full Body Preview'
                 fill
                 className='object-cover'
@@ -43,7 +47,7 @@ export const PreviewSection = () => {
           <TabsContent value='lifestyle'>
             <div className='relative aspect-video rounded-lg overflow-hidden'>
               <Image
-                src='/photo-7-m84jo0h1.jpeg'
+                src={currentImage}
                 alt='Lifestyle Preview'
                 fill
                 className='object-cover'
