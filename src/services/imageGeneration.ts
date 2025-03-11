@@ -1,5 +1,5 @@
-
 import { useState } from "react"
+import axios from 'axios'
 
 export interface GenerationConfig {
   age: number
@@ -18,18 +18,33 @@ export interface GenerationResult {
 }
 
 export const generateImage = async (config: GenerationConfig): Promise<GenerationResult> => {
-  // Simulate API call with demo images
-  const demoImages = [
-    '/photo-8-m84j64ee.jpeg',
-    '/photo-6-m84jbhjp.jpeg',
-    '/photo-7-m84jo0h1.jpeg'
-  ]
-  
-  await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate API delay
-  
-  return {
-    imageUrl: demoImages[Math.floor(Math.random() * demoImages.length)],
-    style: "Contemporary",
-    timestamp: new Date().toISOString()
+  if (!process.env.NEXT_PUBLIC_AI_API_KEY) {
+    throw new Error('AI API key is not configured')
+  }
+
+  try {
+    // Example using a hypothetical AI image generation API
+    const response = await axios.post('https://api.example-ai-service.com/v1/generate', {
+      prompt: `Generate a photo of an influencer with the following characteristics:
+        - Age: ${config.age} years old
+        - Height: ${config.height}cm
+        - Build: ${config.build}% scale
+        - Style: ${config.fashionStyle}
+        - Colors: ${config.colorPalette}
+        - Personality: ${config.personalityTraits}
+        - Content type: ${config.contentStyle}`,
+      api_key: process.env.NEXT_PUBLIC_AI_API_KEY,
+      size: '1024x1024',
+      quality: 'hd'
+    })
+
+    return {
+      imageUrl: response.data.imageUrl,
+      style: config.fashionStyle || 'Contemporary',
+      timestamp: new Date().toISOString()
+    }
+  } catch (error) {
+    console.error('Failed to generate image:', error)
+    throw new Error('Failed to generate image. Please try again.')
   }
 }
