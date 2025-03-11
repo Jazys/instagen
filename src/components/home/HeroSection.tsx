@@ -5,8 +5,8 @@ import Image from 'next/image'
 export const HeroSection = () => {
   const examples = [
     '/photo-8-m84j64ee.jpeg',
+    '/photo-6-m84jbhjp.jpeg',
     'https://images.unsplash.com/photo-1614644147798-f8c0fc9da7f6',
-    'https://images.unsplash.com/photo-1618641986557-1ecd230959aa',
   ]
 
   return (

@@ -9,10 +9,11 @@ import Image from "next/image"
 export default function GalleryPage() {
   const galleryImages = [
     '/photo-8-m84j64ee.jpeg',
+    '/photo-6-m84jbhjp.jpeg',
     'https://images.unsplash.com/photo-1614644147798-f8c0fc9da7f6',
     'https://images.unsplash.com/photo-1618641986557-1ecd230959aa',
-    // Repeat the pattern for 12 items
-    ...Array(9).fill('').map(() => '/photo-8-m84j64ee.jpeg')
+    // Repeat the pattern for remaining items
+    ...Array(8).fill('').map((_, i) => i % 2 === 0 ? '/photo-8-m84j64ee.jpeg' : '/photo-6-m84jbhjp.jpeg')
   ]
 
   return (

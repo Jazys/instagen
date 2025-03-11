@@ -31,7 +31,7 @@ export const PreviewSection = () => {
           <TabsContent value='full-body'>
             <div className='relative aspect-[3/4] rounded-lg overflow-hidden'>
               <Image
-                src='https://images.unsplash.com/photo-1618641986557-1ecd230959aa'
+                src='/photo-6-m84jbhjp.jpeg'
                 alt='Full Body Preview'
                 fill
                 className='object-cover'
