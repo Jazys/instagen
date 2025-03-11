@@ -1,18 +1,22 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
 import { Navbar } from "@/components/layout/Navbar"
-import { Search, Filter } from "lucide-react"
+import { Search, Filter, SlidersHorizontal } from "lucide-react"
 import Head from "next/head"
 import Image from "next/image"
+import { useState } from "react"
 
 export default function GalleryPage() {
+  const [showFilters, setShowFilters] = useState(false)
+  
   const galleryImages = [
     '/photo-8-m84j64ee.jpeg',
     '/photo-6-m84jbhjp.jpeg',
     '/photo-7-m84jo0h1.jpeg',
     'https://images.unsplash.com/photo-1618641986557-1ecd230959aa',
-    // Repeat the pattern for remaining items
     ...Array(8).fill('').map((_, i) => i % 3 === 0 ? '/photo-8-m84j64ee.jpeg' : i % 3 === 1 ? '/photo-6-m84jbhjp.jpeg' : '/photo-7-m84jo0h1.jpeg')
   ]
 
@@ -34,15 +38,61 @@ export default function GalleryPage() {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input className="pl-10" placeholder="Search influencers..." />
                 </div>
-                <Button variant="outline" size="icon">
-                  <Filter className="w-4 h-4" />
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={showFilters ? 'bg-primary/10' : ''}
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
                 </Button>
               </div>
             </div>
 
+            {showFilters && (
+              <Card className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Style</label>
+                    <Select defaultValue="all">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select style" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Styles</SelectItem>
+                        <SelectItem value="casual">Casual</SelectItem>
+                        <SelectItem value="business">Business</SelectItem>
+                        <SelectItem value="athletic">Athletic</SelectItem>
+                        <SelectItem value="glamour">Glamour</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Age Range</label>
+                    <Slider defaultValue={[20, 40]} min={18} max={60} step={1} />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Sort By</label>
+                    <Select defaultValue="newest">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sort by" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Newest First</SelectItem>
+                        <SelectItem value="popular">Most Popular</SelectItem>
+                        <SelectItem value="trending">Trending</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </Card>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {galleryImages.map((src, i) => (
-                <Card key={i} className="overflow-hidden group cursor-pointer">
+                <Card key={i} className="overflow-hidden group cursor-pointer hover:shadow-lg transition-all">
                   <CardContent className="p-0">
                     <div className="relative aspect-[4/5] bg-muted/50">
                       <Image
