@@ -7,7 +7,7 @@ import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Wand2 } from "lucide-react"
 import { generateImage, GenerationConfig } from "@/services/imageGeneration"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from '@/hooks/use-toast'
 
 interface GeneratorFormProps {
   onGenerate: (imageUrl: string) => void
