@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,7 @@ interface GeneratorFormProps {
 }
 
 export const GeneratorForm = ({ onGenerate }: GeneratorFormProps) => {
+  const [mounted, setMounted] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [config, setConfig] = useState<GenerationConfig>({
     age: 25,
@@ -24,6 +25,14 @@ export const GeneratorForm = ({ onGenerate }: GeneratorFormProps) => {
     personalityTraits: '',
     contentStyle: ''
   })
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return null
+  }
 
   const handleGenerate = async () => {
     try {

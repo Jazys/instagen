@@ -1,8 +1,8 @@
-
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Heart, Share2, Download } from "lucide-react"
 import Image from "next/image"
+import { useEffect, useState } from 'react'
 
 interface ImagePreviewModalProps {
   isOpen: boolean
@@ -11,6 +11,16 @@ interface ImagePreviewModalProps {
 }
 
 export const ImagePreviewModal = ({ isOpen, onClose, imageSrc }: ImagePreviewModalProps) => {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return null
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl p-0 overflow-hidden">

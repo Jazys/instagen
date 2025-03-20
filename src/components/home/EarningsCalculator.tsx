@@ -4,10 +4,15 @@ import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 
 export const EarningsCalculator = () => {
+  const [mounted, setMounted] = useState(false)
   const [followers, setFollowers] = useState([1000])
   const [subscriptionPrice, setSubscriptionPrice] = useState([9.99])
   const [conversionRate, setConversionRate] = useState([2])
   const [averageTips, setAverageTips] = useState([5])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const calculateEarnings = () => {
     const monthlySubscribers = Math.floor((followers[0] * conversionRate[0]) / 100)
@@ -22,6 +27,10 @@ export const EarningsCalculator = () => {
   }
 
   const earnings = calculateEarnings()
+
+  if (!mounted) {
+    return null
+  }
 
   return (
     <section className='py-24 bg-muted/50'>
