@@ -1,5 +1,5 @@
-
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Card } from "@/components/ui/card"
 
 export const FaqSection = () => {
   const faqs = [
@@ -16,12 +16,12 @@ export const FaqSection = () => {
       answer: "There's no technical limit to the number of followers your AI influencer can attract. Your growth potential depends on your content quality, engagement strategy, and how well you connect with your target audience. We provide tools and analytics to help you grow your following effectively."
     },
     {
-      question: "Instagen convient à tous les type d'influenceuse IA ?",
-      answer: "Oui, Instagen est conçu pour s'adapter à tous les styles d'influenceurs IA. Que vous souhaitiez créer une personnalité lifestyle, mode, voyage, ou autre, notre plateforme offre les outils de personnalisation nécessaires pour réaliser votre vision unique."
+      question: "Is Instagen suitable for all types of AI influencers?",
+      answer: "Yes, Instagen is designed to accommodate all AI influencer styles. Whether you want to create a lifestyle, fashion, travel, or any other type of personality, our platform offers the customization tools needed to bring your unique vision to life."
     },
     {
-      question: "Combien de temps faut il pour générer mon influenceuse ?",
-      answer: "La génération initiale de votre influenceuse prend quelques minutes. Cependant, pour créer une personnalité complète avec un portfolio varié, comptez environ 1-2 heures pour personnaliser tous les aspects et générer un premier ensemble de contenu de qualité."
+      question: "How long does it take to generate my AI influencer?",
+      answer: "The initial generation process takes about 15 minutes to create a complete personality, including basic profile setup and initial content generation. Our streamlined process ensures you can start your AI influencer journey quickly and efficiently."
     },
     {
       question: "What if I cancel my subscription?",
@@ -30,10 +30,10 @@ export const FaqSection = () => {
   ]
 
   return (
-    <section className="py-24 bg-background">
+    <section className="py-24 bg-gradient-to-b from-background to-background/95">
       <div className="container">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent">
             Frequently Asked Questions
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
@@ -41,20 +41,20 @@ export const FaqSection = () => {
           </p>
         </div>
 
-        <div className="max-w-3xl mx-auto">
+        <Card className="max-w-3xl mx-auto p-6 shadow-lg">
           <Accordion type="single" collapsible className="w-full">
             {faqs.map((faq, i) => (
-              <AccordionItem key={i} value={`item-${i}`}>
-                <AccordionTrigger className="text-left">
+              <AccordionItem key={i} value={`item-${i}`} className="border-b border-border last:border-0">
+                <AccordionTrigger className="text-left hover:text-primary transition-colors">
                   {faq.question}
                 </AccordionTrigger>
-                <AccordionContent>
+                <AccordionContent className="text-muted-foreground">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
-        </div>
+        </Card>
       </div>
     </section>
   )
