@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Wand2 } from "lucide-react"
 import { generateImage, GenerationConfig } from "@/services/imageGeneration"
 import { toast } from '@/hooks/use-toast'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface GeneratorFormProps {
   onGenerate: (imageUrl: string) => void
@@ -16,7 +17,19 @@ interface GeneratorFormProps {
 export const GeneratorForm = ({ onGenerate }: GeneratorFormProps) => {
   const [mounted, setMounted] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [imageFormat, setImageFormat] = useState('portrait')
   const [config, setConfig] = useState<GenerationConfig>({
+    background: '',
+    action: '',
+    emotion: '',
+    cameraShot: '',
+    cameraAngle: '',
+    bodyShape: '',
+    breastSize: '',
+    clothing: '',
+    clothingColor: '',
+    quality: 'enhanced',
+    quantity: 2,
     age: 25,
     height: 170,
     build: 50,
@@ -32,6 +45,12 @@ export const GeneratorForm = ({ onGenerate }: GeneratorFormProps) => {
 
   if (!mounted) {
     return null
+  }
+
+  const formatSizes = {
+    portrait: '832×1216',
+    square: '1024×1024',
+    landscape: '1216×832'
   }
 
   const handleGenerate = async () => {
@@ -55,105 +74,128 @@ export const GeneratorForm = ({ onGenerate }: GeneratorFormProps) => {
   }
 
   return (
-    <Card className="sticky top-24">
-      <CardHeader>
-        <CardTitle>Customize Your Influencer</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <Tabs defaultValue="appearance" className="w-full">
-          <TabsList className="w-full">
-            <TabsTrigger value="appearance" className="flex-1">Appearance</TabsTrigger>
-            <TabsTrigger value="style" className="flex-1">Style</TabsTrigger>
-            <TabsTrigger value="personality" className="flex-1">Personality</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="appearance" className="space-y-4">
-            <div className="space-y-2">
-              <Label>Age Range</Label>
-              <Slider 
-                value={[config.age]} 
-                onValueChange={(value) => setConfig(prev => ({ ...prev, age: value[0] }))}
-                min={18} 
-                max={45} 
-                step={1} 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Height</Label>
-              <Slider 
-                value={[config.height]} 
-                onValueChange={(value) => setConfig(prev => ({ ...prev, height: value[0] }))}
-                min={150} 
-                max={190} 
-                step={1} 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Build</Label>
-              <Slider 
-                value={[config.build]} 
-                onValueChange={(value) => setConfig(prev => ({ ...prev, build: value[0] }))}
-                min={0} 
-                max={100} 
-                step={1} 
-              />
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="style" className="space-y-4">
-            <div className="space-y-2">
-              <Label>Fashion Style</Label>
-              <Input 
-                placeholder="e.g. Streetwear, Bohemian, Minimalist"
-                value={config.fashionStyle}
-                onChange={(e) => setConfig(prev => ({ ...prev, fashionStyle: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Color Palette</Label>
-              <Input 
-                placeholder="e.g. Warm earth tones, Pastels"
-                value={config.colorPalette}
-                onChange={(e) => setConfig(prev => ({ ...prev, colorPalette: e.target.value }))}
-              />
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="personality" className="space-y-4">
-            <div className="space-y-2">
-              <Label>Personality Traits</Label>
-              <Input 
-                placeholder="e.g. Confident, Friendly, Adventurous"
-                value={config.personalityTraits}
-                onChange={(e) => setConfig(prev => ({ ...prev, personalityTraits: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Content Style</Label>
-              <Input 
-                placeholder="e.g. Travel, Fashion, Lifestyle"
-                value={config.contentStyle}
-                onChange={(e) => setConfig(prev => ({ ...prev, contentStyle: e.target.value }))}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
+    <Card className='sticky top-24 space-y-6'>
+      <div className='flex w-full border-b'>
+        {Object.entries(formatSizes).map(([format, size]) => (
+          <button
+            key={format}
+            onClick={() => setImageFormat(format)}
+            className={`flex-1 px-4 py-3 text-center transition-colors ${
+              imageFormat === format ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <div className='font-medium capitalize'>{format}</div>
+            <div className='text-xs text-muted-foreground'>{size}</div>
+          </button>
+        ))}
+      </div>
+
+      <CardContent className='space-y-4'>
+        <div className='grid grid-cols-2 gap-4'>
+          <div className='space-y-2'>
+            <Label>Background</Label>
+            <Select defaultValue='studio'>
+              <SelectTrigger>
+                <SelectValue placeholder='Select background' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='studio'>Studio</SelectItem>
+                <SelectItem value='outdoor'>Outdoor</SelectItem>
+                <SelectItem value='urban'>Urban</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className='space-y-2'>
+            <Label>Action</Label>
+            <Select defaultValue='posing'>
+              <SelectTrigger>
+                <SelectValue placeholder='Select action' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='posing'>Posing</SelectItem>
+                <SelectItem value='walking'>Walking</SelectItem>
+                <SelectItem value='sitting'>Sitting</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className='grid grid-cols-2 gap-4'>
+          <div className='space-y-2'>
+            <Label>Camera Shot</Label>
+            <Select defaultValue='full'>
+              <SelectTrigger>
+                <SelectValue placeholder='Select shot type' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='full'>Full Body</SelectItem>
+                <SelectItem value='half'>Half Body</SelectItem>
+                <SelectItem value='close'>Close Up</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className='space-y-2'>
+            <Label>Camera Angle</Label>
+            <Select defaultValue='front'>
+              <SelectTrigger>
+                <SelectValue placeholder='Select angle' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='front'>Front View</SelectItem>
+                <SelectItem value='side'>Side View</SelectItem>
+                <SelectItem value='high'>High Angle</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className='grid grid-cols-2 gap-4'>
+          <div className='space-y-2'>
+            <Label>Quality</Label>
+            <Select value={config.quality} onValueChange={(value) => setConfig(prev => ({ ...prev, quality: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder='Select quality' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='enhanced'>Enhanced</SelectItem>
+                <SelectItem value='standard'>Standard</SelectItem>
+                <SelectItem value='draft'>Draft</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className='space-y-2'>
+            <Label>Quantity</Label>
+            <Select defaultValue='2'>
+              <SelectTrigger>
+                <SelectValue placeholder='Select quantity' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='1'>1 Image</SelectItem>
+                <SelectItem value='2'>2 Images</SelectItem>
+                <SelectItem value='4'>4 Images</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
         <Button 
-          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white"
-          size="lg"
+          className='w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+          size='lg'
           onClick={handleGenerate}
           disabled={generating}
         >
           {generating ? (
-            <span className="flex items-center gap-2">
-              <Wand2 className="w-4 h-4 animate-pulse" />
+            <span className='flex items-center gap-2'>
+              <Wand2 className='w-4 h-4 animate-pulse' />
               Generating...
             </span>
           ) : (
-            <span className="flex items-center gap-2">
-              <Wand2 className="w-4 h-4" />
-              Generate Influencer
+            <span className='flex items-center gap-2'>
+              <Wand2 className='w-4 h-4' />
+              Generate {imageFormat} • 20 Credits
             </span>
           )}
         </Button>
