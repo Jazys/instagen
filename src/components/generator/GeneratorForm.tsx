@@ -121,6 +121,41 @@ export const GeneratorForm = ({ onGenerate }: GeneratorFormProps) => {
 
         <div className='grid grid-cols-2 gap-4'>
           <div className='space-y-2'>
+            <Label>Body Shape</Label>
+            <Select defaultValue='slim'>
+              <SelectTrigger>
+                <SelectValue placeholder='Select body shape' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='slim'>Slim</SelectItem>
+                <SelectItem value='athletic'>Athletic</SelectItem>
+                <SelectItem value='curvy'>Curvy</SelectItem>
+                <SelectItem value='petite'>Petite</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className='space-y-2'>
+            <Label>Clothing Color</Label>
+            <Select defaultValue='black'>
+              <SelectTrigger>
+                <SelectValue placeholder='Select color' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='black'>Black</SelectItem>
+                <SelectItem value='white'>White</SelectItem>
+                <SelectItem value='red'>Red</SelectItem>
+                <SelectItem value='blue'>Blue</SelectItem>
+                <SelectItem value='green'>Green</SelectItem>
+                <SelectItem value='pink'>Pink</SelectItem>
+                <SelectItem value='purple'>Purple</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className='grid grid-cols-2 gap-4'>
+          <div className='space-y-2'>
             <Label>Camera Shot</Label>
             <Select defaultValue='full'>
               <SelectTrigger>
