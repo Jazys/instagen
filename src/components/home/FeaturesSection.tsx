@@ -1,26 +1,31 @@
-
 import { Card, CardContent } from "@/components/ui/card"
-import { BadgeCheck, Image, DollarSign, Instagram, BrainCircuit } from "lucide-react"
+import Image from 'next/image'
 
 export const FeaturesSection = () => {
-  const features = [
+  const steps = [
     {
-      icon: <BrainCircuit className="w-12 h-12 text-purple-600" />,
-      title: "Create Your AI Influencer",
-      description: "Design your perfect virtual influencer using our advanced AI technology. Customize appearance, style, and personality.",
-      step: 1
+      title: 'Design Your Character',
+      description: 'Choose from a wide range of physical attributes and personality traits to create a unique digital persona, complete with a bio that sets the stage for meaningful interactions.',
+      image: '/photo-8-m84j64ee.jpeg',
+      imageLeft: true
     },
     {
-      icon: <Instagram className="w-12 h-12 text-pink-600" />,
-      title: "Generate Social Content",
-      description: "Create engaging content for Instagram, TikTok, and more. Our AI helps you maintain consistent posting and engagement.",
-      step: 2
+      title: 'Generate Content',
+      description: 'Utilize our user-friendly tools to effortlessly craft posts, images, and videos. It\'s simple and straightforward, no steep learning curve involved.',
+      image: '/photo-6-m84jbhjp.jpeg',
+      imageLeft: false
     },
     {
-      icon: <DollarSign className="w-12 h-12 text-purple-600" />,
-      title: "Monetize Your Influence",
-      description: "Sell AI-generated photos and collaborate with brands. Turn your virtual influence into real revenue.",
-      step: 3
+      title: 'Spread the Word',
+      description: 'Share your digital persona across social media platforms, online communities, or wherever potential fans hang out.',
+      image: '/photo-7-m84jo0h1.jpeg',
+      imageLeft: true
+    },
+    {
+      title: 'Monetize Your Influence',
+      description: 'Turn your virtual influence into real revenue through brand collaborations, content sales, and exclusive partnerships.',
+      image: '/photo-8-m84j64ee.jpeg',
+      imageLeft: false
     }
   ]
 
@@ -32,22 +37,32 @@ export const FeaturesSection = () => {
             Your Journey to Virtual Influence
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Follow our proven three-step process to create, grow, and monetize your AI influencer presence
+            Follow our proven four-step process to create, grow, and monetize your AI influencer presence
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {features.map((feature, i) => (
-            <Card key={i} className="relative overflow-hidden border-2 hover:border-primary/50 transition-colors">
-              <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="font-bold text-primary">{feature.step}</span>
+        <div className="space-y-24">
+          {steps.map((step, i) => (
+            <div key={i} className={`flex flex-col ${step.imageLeft ? 'md:flex-row' : 'md:flex-row-reverse'} gap-8 items-center`}>
+              <div className='w-full md:w-1/2'>
+                <div className='relative aspect-[4/5] rounded-xl overflow-hidden'>
+                  <Image
+                    src={step.image}
+                    alt={step.title}
+                    fill
+                    className='object-cover'
+                    sizes='(max-width: 768px) 100vw, 50vw'
+                  />
+                </div>
               </div>
-              <CardContent className="pt-8 pb-6 px-6">
-                <div className="mb-6">{feature.icon}</div>
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
-              </CardContent>
-            </Card>
+              <div className='w-full md:w-1/2 space-y-4'>
+                <div className='inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary font-bold text-xl mb-4'>
+                  {i + 1}
+                </div>
+                <h3 className='text-2xl font-bold'>{step.title}</h3>
+                <p className='text-muted-foreground text-lg'>{step.description}</p>
+              </div>
+            </div>
           ))}
         </div>
       </div>
