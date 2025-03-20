@@ -10,25 +10,29 @@ export const FeaturesSection = () => {
       title: "Design Your Character",
       description: "Choose from a wide range of physical attributes and personality traits to create a unique digital persona, complete with a bio that sets the stage for meaningful interactions.",
       image: "/photo-8-m84j64ee.jpeg",
-      imageLeft: true
+      imageLeft: true,
+      buttonText: "Start Creating Now"
     },
     {
       title: "Generate Content",
       description: "Utilize our user-friendly tools to effortlessly craft posts, images, and videos. It\'s simple and straightforward, no steep learning curve involved.",
       image: "/photo-6-m84jbhjp.jpeg",
-      imageLeft: false
+      imageLeft: false,
+      buttonText: "Try Content Tools"
     },
     {
       title: "Spread the Word",
       description: "Share your digital persona across social media platforms, online communities, or wherever potential fans hang out.",
       image: "/photo-7-m84jo0h1.jpeg",
-      imageLeft: true
+      imageLeft: true,
+      buttonText: "Start Creating"
     },
     {
       title: "Monetize Your Influence",
       description: "Turn your virtual influence into real revenue through brand collaborations, content sales, and exclusive partnerships.",
       image: "/photo-8-m84j64ee.jpeg",
-      imageLeft: false
+      imageLeft: false,
+      buttonText: "Get Started Now"
     }
   ]
 
@@ -67,7 +71,7 @@ export const FeaturesSection = () => {
                   <p className="text-muted-foreground text-lg">{step.description}</p>
                   <Button asChild className="bg-gradient-to-r from-purple-600 to-pink-600 text-white mt-4">
                     <Link href="/auth/register">
-                      Get Started
+                      {step.buttonText}
                     </Link>
                   </Button>
                 </div>
