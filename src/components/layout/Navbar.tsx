@@ -6,6 +6,15 @@ import { useRouter } from 'next/router'
 export const Navbar = () => {
   const router = useRouter()
 
+  const scrollToFeatures = () => {
+    const featuresSection = document.querySelector("#features")
+    if (featuresSection) {
+      featuresSection.scrollIntoView({ behavior: "smooth" })
+    } else if (router.pathname !== "/") {
+      router.push("/#features")
+    }
+  }
+
   return (
     <header className='fixed top-0 w-full border-b bg-white z-50'>
       <div className='container flex h-16 items-center justify-between'>
@@ -17,20 +26,12 @@ export const Navbar = () => {
 
         <div className='hidden md:flex gap-6'>
           <Button variant='ghost' asChild>
-            <Link 
-              href='/generate'
-              className={router.pathname === '/generate' ? 'text-primary' : ''}
-            >
-              Create
+            <Link href='/'>
+              Home
             </Link>
           </Button>
-          <Button variant='ghost' asChild>
-            <Link 
-              href='/gallery'
-              className={router.pathname === '/gallery' ? 'text-primary' : ''}
-            >
-              Gallery
-            </Link>
+          <Button variant='ghost' onClick={scrollToFeatures}>
+            Features
           </Button>
           <Button variant='ghost' asChild>
             <Link 
