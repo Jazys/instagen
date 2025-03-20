@@ -40,6 +40,14 @@ export default function GeneratePage() {
               >
                 Generate Influencer
               </Button>
+              <Button 
+                asChild
+                className='bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+              >
+                <Link href='/gallery'>
+                  Gallery
+                </Link>
+              </Button>
             </div>
           </div>
           <div className='flex flex-col md:flex-row gap-8'>
