@@ -10,6 +10,7 @@ import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import Head from "next/head"
 import { useState } from 'react'
+import Link from 'next/link'
 
 export default function GeneratePage() {
   const [currentImage, setCurrentImage] = useState('/photo-8-m84j64ee.jpeg')
@@ -24,6 +25,26 @@ export default function GeneratePage() {
       <Navbar />
       <main className='pt-24 min-h-screen bg-gradient-to-b from-background to-background/95'>
         <div className='container py-8'>
+          <div className='flex justify-between items-center mb-8'>
+            <h1 className='text-3xl font-bold'>AI Influencer Generator</h1>
+            <div className='flex gap-4'>
+              <Button 
+                onClick={() => setCurrentImage('/photo-8-m84j64ee.jpeg')}
+                className='bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+              >
+                Generate Photo
+              </Button>
+              <Button 
+                variant='outline'
+                className='border-purple-600 text-purple-600 hover:bg-purple-50'
+                asChild
+              >
+                <Link href='/gallery'>
+                  Gallery
+                </Link>
+              </Button>
+            </div>
+          </div>
           <div className='flex flex-col md:flex-row gap-8'>
             <div className='w-full md:w-1/3'>
               <GeneratorForm onGenerate={setCurrentImage} />

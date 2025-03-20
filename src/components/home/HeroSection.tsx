@@ -4,15 +4,21 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ImagePreviewModal } from '@/components/gallery/ImagePreviewModal'
 import { useState } from 'react'
+import { useRouter } from 'next/router'
 
 export const HeroSection = () => {
+  const router = useRouter()
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  
+  const handleDemoLogin = () => {
+    router.push('/generate')
+  }
+
   const examples = [
     '/photo-8-m84j64ee.jpeg',
     '/photo-6-m84jbhjp.jpeg',
     '/photo-7-m84jo0h1.jpeg'
   ]
-
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
   return (
     <div className='relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-background to-background/95'>
@@ -31,11 +37,19 @@ export const HeroSection = () => {
         </p>
 
         <div className='flex flex-col sm:flex-row gap-4 w-full justify-center'>
-          <Link href='/generate'>
+          <Link href='/auth/register'>
             <Button size='lg' className='bg-gradient-to-r from-purple-600 to-pink-600 text-white'>
-              Start Creating <ArrowRight className='ml-2 w-4 h-4' />
+              Get Started <ArrowRight className='ml-2 w-4 h-4' />
             </Button>
           </Link>
+          <Button 
+            size='lg' 
+            variant='outline'
+            onClick={handleDemoLogin}
+            className='border-purple-600 text-purple-600 hover:bg-purple-50'
+          >
+            Try Demo
+          </Button>
         </div>
 
         <div className='w-full max-w-5xl mt-12 overflow-hidden'>
