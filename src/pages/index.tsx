@@ -3,6 +3,7 @@ import { Navbar } from '@/components/layout/Navbar'
 import { HeroSection } from '@/components/home/HeroSection'
 import { FeaturesSection } from '@/components/home/FeaturesSection'
 import { MonetizationSection } from '@/components/home/MonetizationSection'
+import { FaqSection } from '@/components/home/FaqSection'
 
 export default function Home() {
   return (
@@ -18,6 +19,7 @@ export default function Home() {
         <HeroSection />
         <MonetizationSection />
         <FeaturesSection />
+        <FaqSection />
       </main>
     </>
   )
