@@ -36,11 +36,6 @@ export const HeroSection = () => {
               Start Creating <ArrowRight className='ml-2 w-4 h-4' />
             </Button>
           </Link>
-          <Link href='/gallery'>
-            <Button size='lg' variant='outline'>
-              View Gallery
-            </Button>
-          </Link>
         </div>
 
         <div className='w-full max-w-5xl mt-12 overflow-hidden'>
