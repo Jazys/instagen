@@ -35,13 +35,10 @@ export default function GeneratePage() {
                 Generate Photo
               </Button>
               <Button 
-                variant='outline'
-                className='border-purple-600 text-purple-600 hover:bg-purple-50'
-                asChild
+                onClick={() => setCurrentImage('/photo-6-m84jbhjp.jpeg')}
+                className='bg-gradient-to-r from-purple-600 to-pink-600 text-white'
               >
-                <Link href='/gallery'>
-                  Gallery
-                </Link>
+                Generate Influencer
               </Button>
             </div>
           </div>
