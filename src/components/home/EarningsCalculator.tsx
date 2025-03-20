@@ -45,103 +45,110 @@ export const EarningsCalculator = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 items-start">
-          <Card>
+        <div className="grid md:grid-cols-2 gap-8 items-stretch">
+          <Card className="flex flex-col">
             <CardHeader>
               <CardTitle>Adjust Your Metrics</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <Label>Total Followers</Label>
-                    <span className="font-medium">{followers[0].toLocaleString()}</span>
+            <CardContent className="flex-1 flex flex-col justify-between">
+              <div className="space-y-8">
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-base">Total Followers</Label>
+                      <span className="font-medium text-lg">{followers[0].toLocaleString()}</span>
+                    </div>
+                    <Slider
+                      value={followers}
+                      onValueChange={setFollowers}
+                      min={100}
+                      max={100000}
+                      step={100}
+                      className="py-4"
+                    />
                   </div>
-                  <Slider
-                    value={followers}
-                    onValueChange={setFollowers}
-                    min={100}
-                    max={100000}
-                    step={100}
-                  />
-                </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <Label>Subscription Price ($/month)</Label>
-                    <span className="font-medium">${subscriptionPrice[0].toFixed(2)}</span>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-base">Subscription Price ($/month)</Label>
+                      <span className="font-medium text-lg">${subscriptionPrice[0].toFixed(2)}</span>
+                    </div>
+                    <Slider
+                      value={subscriptionPrice}
+                      onValueChange={setSubscriptionPrice}
+                      min={0.99}
+                      max={99.99}
+                      step={0.5}
+                      className="py-4"
+                    />
                   </div>
-                  <Slider
-                    value={subscriptionPrice}
-                    onValueChange={setSubscriptionPrice}
-                    min={0.99}
-                    max={99.99}
-                    step={0.5}
-                  />
-                </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <Label>Subscriber Conversion Rate (%)</Label>
-                    <span className="font-medium">{conversionRate[0]}%</span>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-base">Subscriber Conversion Rate (%)</Label>
+                      <span className="font-medium text-lg">{conversionRate[0]}%</span>
+                    </div>
+                    <Slider
+                      value={conversionRate}
+                      onValueChange={setConversionRate}
+                      min={0.1}
+                      max={10}
+                      step={0.1}
+                      className="py-4"
+                    />
                   </div>
-                  <Slider
-                    value={conversionRate}
-                    onValueChange={setConversionRate}
-                    min={0.1}
-                    max={10}
-                    step={0.1}
-                  />
-                </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <Label>Average Tips per Subscriber ($/month)</Label>
-                    <span className="font-medium">${averageTips[0]}</span>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-base">Average Tips ($/month)</Label>
+                      <span className="font-medium text-lg">${averageTips[0]}</span>
+                    </div>
+                    <Slider
+                      value={averageTips}
+                      onValueChange={setAverageTips}
+                      min={0}
+                      max={50}
+                      step={1}
+                      className="py-4"
+                    />
                   </div>
-                  <Slider
-                    value={averageTips}
-                    onValueChange={setAverageTips}
-                    min={0}
-                    max={50}
-                    step={1}
-                  />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="flex flex-col">
             <CardHeader>
               <CardTitle>Estimated Monthly Earnings</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-center mb-8">
-                <div className="text-5xl font-bold text-primary mb-2">
-                  ${earnings.total.toFixed(2)}
+            <CardContent className="flex-1 flex flex-col justify-between">
+              <div className="space-y-8">
+                <div className="text-center p-8 bg-muted rounded-lg">
+                  <div className="text-6xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    ${earnings.total.toFixed(2)}
+                  </div>
+                  <div className="text-muted-foreground mt-2">Per Month</div>
                 </div>
-              </div>
 
-              <div className="space-y-6">
-                <div className="bg-muted p-4 rounded-lg">
-                  <div className="text-xl font-semibold mb-1">Monthly Subscribers</div>
-                  <div className="text-2xl text-primary">{earnings.subscribers}</div>
+                <div className="bg-muted p-6 rounded-lg text-center">
+                  <div className="text-lg text-muted-foreground mb-2">Monthly Subscribers</div>
+                  <div className="text-4xl font-semibold text-primary">{earnings.subscribers}</div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-muted p-4 rounded-lg">
-                    <div className="text-sm text-muted-foreground mb-1">Subscription Revenue</div>
-                    <div className="text-xl font-semibold">${earnings.subscriptionRevenue.toFixed(2)}</div>
+                  <div className="bg-muted p-6 rounded-lg text-center">
+                    <div className="text-sm text-muted-foreground mb-2">Subscription Revenue</div>
+                    <div className="text-2xl font-semibold">${earnings.subscriptionRevenue.toFixed(2)}</div>
                   </div>
 
-                  <div className="bg-muted p-4 rounded-lg">
-                    <div className="text-sm text-muted-foreground mb-1">Tips Revenue</div>
-                    <div className="text-xl font-semibold">${earnings.tipsRevenue.toFixed(2)}</div>
+                  <div className="bg-muted p-6 rounded-lg text-center">
+                    <div className="text-sm text-muted-foreground mb-2">Tips Revenue</div>
+                    <div className="text-2xl font-semibold">${earnings.tipsRevenue.toFixed(2)}</div>
                   </div>
                 </div>
 
-                <p className="text-xs text-muted-foreground mt-4">
-                  * Earnings are estimates based on average user data and may vary based on content quality, engagement, and market conditions. Platform fees will be deducted from the total earnings.
+                <p className="text-xs text-muted-foreground text-center">
+                  * Earnings are estimates based on average user data and may vary based on content quality, engagement, and market conditions.
                 </p>
               </div>
             </CardContent>
@@ -152,11 +159,11 @@ export const EarningsCalculator = () => {
           <Button 
             asChild
             size="lg" 
-            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-lg px-8 py-6 h-auto"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-lg px-12 py-8 h-auto rounded-xl hover:opacity-90 transition-opacity shadow-lg hover:shadow-xl"
           >
-            <Link href="/auth/register" className="flex items-center gap-2">
+            <Link href="/auth/register" className="flex items-center gap-3 text-xl">
               Start Your AI Influencer Journey
-              <ArrowRight className="w-5 h-5" />
+              <ArrowRight className="w-6 h-6" />
             </Link>
           </Button>
         </div>
