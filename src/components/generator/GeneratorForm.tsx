@@ -28,8 +28,6 @@ export const GeneratorForm = ({ onGenerate }: GeneratorFormProps) => {
     breastSize: '',
     clothing: '',
     clothingColor: '',
-    quality: 'enhanced',
-    quantity: 2,
     age: 25,
     height: 170,
     build: 50,
@@ -151,36 +149,6 @@ export const GeneratorForm = ({ onGenerate }: GeneratorFormProps) => {
           </div>
         </div>
 
-        <div className='grid grid-cols-2 gap-4'>
-          <div className='space-y-2'>
-            <Label>Quality</Label>
-            <Select value={config.quality} onValueChange={(value) => setConfig(prev => ({ ...prev, quality: value }))}>
-              <SelectTrigger>
-                <SelectValue placeholder='Select quality' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='enhanced'>Enhanced</SelectItem>
-                <SelectItem value='standard'>Standard</SelectItem>
-                <SelectItem value='draft'>Draft</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className='space-y-2'>
-            <Label>Quantity</Label>
-            <Select defaultValue='2'>
-              <SelectTrigger>
-                <SelectValue placeholder='Select quantity' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='1'>1 Image</SelectItem>
-                <SelectItem value='2'>2 Images</SelectItem>
-                <SelectItem value='4'>4 Images</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
         <Button 
           className='w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white'
           size='lg'
@@ -195,7 +163,7 @@ export const GeneratorForm = ({ onGenerate }: GeneratorFormProps) => {
           ) : (
             <span className='flex items-center gap-2'>
               <Wand2 className='w-4 h-4' />
-              Generate {imageFormat} • 20 Credits
+              Generate {imageFormat}
             </span>
           )}
         </Button>

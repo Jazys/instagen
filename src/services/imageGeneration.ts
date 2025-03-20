@@ -2,8 +2,6 @@
 import axios from 'axios'
 
 export interface GenerationConfig {
-  quality: string
-  quantity: number
   background?: string
   action?: string
   emotion?: string
@@ -40,29 +38,6 @@ export const generateImage = async (config: GenerationConfig): Promise<Generatio
       style: config.fashionStyle || 'Contemporary',
       timestamp: new Date().toISOString()
     }
-
-    // Actual API implementation would look like this:
-    /*
-    const response = await axios.post('https://api.example-ai-service.com/v1/generate', {
-      prompt: `Generate a photo of an influencer with the following characteristics:
-        - Background: ${config.background}
-        - Action: ${config.action}
-        - Camera Shot: ${config.cameraShot}
-        - Camera Angle: ${config.cameraAngle}
-        - Quality: ${config.quality}
-        - Style: ${config.fashionStyle}`,
-      api_key: process.env.NEXT_PUBLIC_AI_API_KEY,
-      size: '1024x1024',
-      quality: config.quality,
-      num_images: config.quantity
-    })
-
-    return {
-      imageUrl: response.data.imageUrl,
-      style: config.fashionStyle || 'Contemporary',
-      timestamp: new Date().toISOString()
-    }
-    */
   } catch (error) {
     console.error('Failed to generate image:', error)
     throw new Error('Failed to generate image. Please try again.')
