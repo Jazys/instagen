@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { GeneratorForm } from "@/components/generator/GeneratorForm"
 import { PreviewSection } from "@/components/generator/PreviewSection"
 import { Navbar } from "@/components/layout/Navbar"
+import { Footer } from "@/components/layout/Footer"
 import Head from "next/head"
 import { useState } from 'react'
 
@@ -33,6 +34,7 @@ export default function GeneratePage() {
           </div>
         </div>
       </main>
+      <Footer />
     </>
   )
 }

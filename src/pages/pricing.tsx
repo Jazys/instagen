@@ -4,6 +4,7 @@ import { Check } from "lucide-react"
 import { Navbar } from "@/components/layout/Navbar"
 import Head from "next/head"
 import { ComparisonTable } from '@/components/pricing/ComparisonTable'
+import { Footer } from "@/components/layout/Footer"
 
 export default function PricingPage() {
   const tiers = [
@@ -139,6 +140,7 @@ export default function PricingPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </>
   )
 }

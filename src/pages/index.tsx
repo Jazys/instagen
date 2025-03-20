@@ -1,5 +1,6 @@
 import Head from 'next/head'
 import { Navbar } from '@/components/layout/Navbar'
+import { Footer } from '@/components/layout/Footer'
 import { HeroSection } from '@/components/home/HeroSection'
 import { FeaturesSection } from '@/components/home/FeaturesSection'
 import { MonetizationSection } from '@/components/home/MonetizationSection'
@@ -21,6 +22,7 @@ export default function Home() {
         <FeaturesSection />
         <FaqSection />
       </main>
+      <Footer />
     </>
   )
 }
