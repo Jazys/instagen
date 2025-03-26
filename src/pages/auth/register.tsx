@@ -6,7 +6,7 @@ import { Navbar } from "@/components/layout/Navbar"
 import Head from "next/head"
 import Link from "next/link"
 import { Footer } from "@/components/layout/Footer"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/router"
 import { useToast } from "@/components/ui/use-toast"
@@ -15,6 +15,7 @@ export default function RegisterPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -22,6 +23,34 @@ export default function RegisterPage() {
     fullName: "",
     username: "",
   })
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        console.log("Checking for existing session on register page...")
+        const { data, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error("Session check error:", error.message)
+          throw error
+        }
+
+        if (data?.session) {
+          console.log("Existing session found, redirecting to dashboard")
+          // Redirect to dashboard using window.location.replace for a complete refresh
+          window.location.replace('/dashboard')
+          return
+        }
+      } catch (error) {
+        console.error("Session check failed:", error instanceof Error ? error.message : "Unknown error")
+      } finally {
+        setCheckingSession(false)
+      }
+    }
+
+    checkSession()
+  }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -45,6 +74,7 @@ export default function RegisterPage() {
 
     try {
       setLoading(true)
+      console.log("Attempting user registration")
       
       // Sign up the user
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -58,29 +88,64 @@ export default function RegisterPage() {
         }
       })
 
-      if (authError) throw authError
+      if (authError) {
+        console.error("Registration error:", authError.message)
+        throw authError
+      }
 
       if (authData.user) {
+        console.log("User created successfully:", authData.user.id)
+        
+        // The profiles table should be automatically populated via the Supabase trigger function
+        // But we can verify the session is working
+        
         // Get the session to confirm we're logged in
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
-        if (sessionError) throw sessionError
+        if (sessionError) {
+          console.error("Session check error:", sessionError.message)
+          throw sessionError
+        }
 
         if (session) {
+          console.log("Session established, session details:", {
+            userId: session.user.id,
+            expiresAt: session.expires_at ? new Date(session.expires_at * 1000).toISOString() : 'unknown',
+          })
+          
           toast({
             title: "Success",
             description: "Registration successful! Redirecting to dashboard...",
           })
-          router.push("/dashboard")
+          
+          // Make sure the session is stored properly
+          localStorage.setItem('sb-auth-token', JSON.stringify(session))
+          console.log("Session saved to storage")
+          
+          // Wait a moment for session to be fully established
+          setTimeout(() => {
+            // Force a browser navigation to dashboard for a full page refresh
+            console.log("Redirecting to dashboard")
+            window.location.replace('/dashboard')
+          }, 1000) // Use a longer timeout
         } else {
+          console.log("No session after registration, redirecting to login")
           toast({
             title: "Success",
             description: "Registration successful! Please log in.",
           })
           router.push("/auth/login")
         }
+      } else {
+        console.warn("User object not returned from registration")
+        toast({
+          title: "Notice",
+          description: "Registration initiated. Please check your email to confirm your account.",
+        })
+        router.push("/auth/login")
       }
     } catch (error) {
+      console.error("Registration failed:", error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to register",
@@ -89,6 +154,23 @@ export default function RegisterPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show loading state while checking for session
+  if (checkingSession) {
+    return (
+      <>
+        <Head>
+          <title>Create Account - Instagen</title>
+        </Head>
+        <Navbar />
+        <main className="pt-24 min-h-screen">
+          <div className="container flex items-center justify-center">
+            <p>Checking authentication status...</p>
+          </div>
+        </main>
+      </>
+    )
   }
 
   return (

@@ -6,7 +6,7 @@ import { Navbar } from "@/components/layout/Navbar"
 import Head from "next/head"
 import Link from "next/link"
 import { Footer } from "@/components/layout/Footer"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/router"
 import { useToast } from "@/components/ui/use-toast"
@@ -15,10 +15,39 @@ export default function LoginPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   })
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        console.log("Checking for existing session...")
+        const { data, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error("Session check error:", error.message)
+          throw error
+        }
+
+        if (data?.session) {
+          console.log("Existing session found, redirecting to dashboard")
+          // Redirect to dashboard using window.location.replace for a complete refresh
+          window.location.replace('/dashboard')
+          return
+        }
+      } catch (error) {
+        console.error("Session check failed:", error instanceof Error ? error.message : "Unknown error")
+      } finally {
+        setCheckingSession(false)
+      }
+    }
+
+    checkSession()
+  }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -33,8 +62,13 @@ export default function LoginPage() {
     
     try {
       setLoading(true)
-      console.log("Attempting login with:", formData.email)
       
+      // First sign out any existing session to ensure a clean login
+      await supabase.auth.signOut()
+      
+      console.log("Attempting to sign in with:", formData.email)
+      
+      // Sign in the user
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
@@ -45,18 +79,29 @@ export default function LoginPage() {
         throw error
       }
 
-      console.log("Login result:", data)
-
+      console.log("Login successful, checking session...")
+      
       if (data?.session) {
-        console.log("Session obtained, redirecting...")
+        console.log("Session details:", {
+          userId: data.session.user.id,
+          expiresAt: new Date(data.session.expires_at * 1000).toISOString(),
+        })
         
         toast({
           title: "Success",
           description: "Logged in successfully!",
         })
         
-        // Direct navigation to dashboard without checking query params
-        window.location.href = '/dashboard'
+        // Make sure the session is stored properly
+        localStorage.setItem('sb-auth-token', JSON.stringify(data.session))
+        console.log("Session saved to storage")
+        
+        // Wait for session to be saved in storage - use a longer timeout
+        setTimeout(() => {
+          // Force a browser navigation to dashboard, using replace for clean history
+          console.log("Redirecting to dashboard")
+          window.location.replace('/dashboard')
+        }, 1000) // Increased timeout to 1000ms
       } else {
         console.warn("No session after login")
         toast({
@@ -66,6 +111,7 @@ export default function LoginPage() {
         })
       }
     } catch (error) {
+      console.error("Login failed:", error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to login",
@@ -74,6 +120,23 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show loading state while checking for session
+  if (checkingSession) {
+    return (
+      <>
+        <Head>
+          <title>Sign In - Instagen</title>
+        </Head>
+        <Navbar />
+        <main className="pt-24 min-h-screen">
+          <div className="container flex items-center justify-center">
+            <p>Checking authentication status...</p>
+          </div>
+        </main>
+      </>
+    )
   }
 
   return (
@@ -90,7 +153,7 @@ export default function LoginPage() {
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
               <CardDescription>
-                Enter your email and password to access your account
+                Enter your credentials to access your account
               </CardDescription>
             </CardHeader>
             <form onSubmit={handleLogin}>
@@ -110,7 +173,7 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
                   <Input 
-                    id="password"
+                    id="password" 
                     name="password"
                     type="password"
                     value={formData.password}
@@ -128,7 +191,7 @@ export default function LoginPage() {
                   {loading ? "Signing in..." : "Sign in"}
                 </Button>
                 <div className="text-sm text-center text-muted-foreground">
-                  Don't have an account?{" "}
+                  Don&apos;t have an account?{" "}
                   <Link href="/auth/register" className="text-primary hover:underline">
                     Create account
                   </Link>

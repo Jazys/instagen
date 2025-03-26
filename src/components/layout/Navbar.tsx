@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from "@/components/ui/navigation-menu"
 import { useRouter } from 'next/router'
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 
 export const Navbar = () => {
@@ -10,18 +10,38 @@ export const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isClient, setIsClient] = useState(false)
   
-  // This useEffect will only run on the client after hydration
+  // Check auth status - memoized for performance
+  const checkAuth = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.auth.getSession()
+      if (error) throw error
+      setIsLoggedIn(!!data.session)
+    } catch (error) {
+      // Fail silently in production, user will appear logged out
+      setIsLoggedIn(false)
+    }
+  }, [])
+
+  // Listen for auth state changes
   useEffect(() => {
+    // Mark that we're on client-side to avoid hydration issues
     setIsClient(true)
     
-    // Check auth status
-    const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession()
-      setIsLoggedIn(!!data.session)
-    }
-    
+    // Initial auth check
     checkAuth()
-  }, [])
+    
+    // Subscribe to auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setIsLoggedIn(!!session)
+      }
+    )
+    
+    // Cleanup subscription on unmount
+    return () => {
+      authListener.subscription.unsubscribe()
+    }
+  }, [checkAuth])
 
   const scrollToFeatures = () => {
     const featuresSection = document.querySelector("#features")
@@ -33,8 +53,13 @@ export const Navbar = () => {
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
+    try {
+      await supabase.auth.signOut()
+      router.push('/')
+    } catch (error) {
+      // Silently fail and redirect anyway
+      router.push('/')
+    }
   }
 
   return (
@@ -73,34 +98,28 @@ export const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          {isClient ? (
-            isLoggedIn ? (
-              <Button 
-                size="sm" 
-                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90 transition-opacity"
-                onClick={handleSignOut}
-              >
-                Sign Out
-              </Button>
-            ) : (
-              <>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/auth/login">
-                    Sign In
-                  </Link>
-                </Button>
-                <Button size="sm" className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90 transition-opacity" asChild>
-                  <Link href="/auth/register">
-                    Get Started
-                  </Link>
-                </Button>
-              </>
-            )
+          {!isClient ? (
+            // Static placeholder for SSR to prevent hydration errors
+            <div className="w-[150px] h-9"></div>
+          ) : isLoggedIn ? (
+            <Button 
+              size="sm" 
+              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90 transition-opacity"
+              onClick={handleSignOut}
+            >
+              Sign Out
+            </Button>
           ) : (
-            // During SSR, don't render any auth-dependent links to avoid hydration errors
             <>
-              <Button variant="ghost" size="sm" className="opacity-0">
-                Loading...
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/auth/login">
+                  Sign In
+                </Link>
+              </Button>
+              <Button size="sm" className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90 transition-opacity" asChild>
+                <Link href="/auth/register">
+                  Get Started
+                </Link>
               </Button>
             </>
           )}
