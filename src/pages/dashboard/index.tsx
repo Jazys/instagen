@@ -150,13 +150,20 @@ export default function DashboardPage() {
             <h1 className="text-3xl font-bold">
               Welcome, {profile?.username || user?.email?.split('@')[0] || 'User'}
             </h1>
-            <Button 
-              variant="outline"
-              onClick={handleSignOut}
-              disabled={loading}
-            >
-              Sign Out
-            </Button>
+            <div className="flex space-x-3">
+              <Link href="/dashboard/profile">
+                <Button variant="outline">
+                  Profile
+                </Button>
+              </Link>
+              <Button 
+                variant="outline"
+                onClick={handleSignOut}
+                disabled={loading}
+              >
+                Sign Out
+              </Button>
+            </div>
           </div>
           
           <div className="grid gap-6">
@@ -191,11 +198,18 @@ export default function DashboardPage() {
               </div>
               <div className="flex justify-between items-center">
                 <p className="text-sm text-muted-foreground">Need more credits?</p>
-                <Link href="/dashboard/credits">
-                  <Button className="bg-green-600 hover:bg-green-700">
-                    Buy Credits
-                  </Button>
-                </Link>
+                <div className="flex space-x-2">
+                  <Link href="/dashboard/profile">
+                    <Button variant="outline">
+                      Profile
+                    </Button>
+                  </Link>
+                  <Link href="/dashboard/credits">
+                    <Button className="bg-green-600 hover:bg-green-700">
+                      Buy Credits
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
             

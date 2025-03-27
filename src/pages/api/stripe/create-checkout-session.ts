@@ -4,9 +4,23 @@ import { supabase } from '@/lib/supabase';
 
 console.log("API MODULE LOADED: create-checkout-session.ts");
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-01-27.acacia',
-});
+// Check for Stripe Secret Key
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.error("CRITICAL ERROR: STRIPE_SECRET_KEY is not defined in environment variables");
+  console.error("Please add STRIPE_SECRET_KEY to your .env.local file");
+}
+
+// Initialize Stripe with more robust error handling
+let stripe: Stripe;
+try {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'missing_key', {
+    apiVersion: '2025-01-27.acacia',
+  });
+  console.log("Stripe initialized successfully");
+} catch (error) {
+  console.error("Failed to initialize Stripe client:", error);
+  // We'll handle this in the API route when it's called
+}
 
 const CREDIT_PACKS = {
   'small': { credits: 100, price: 1000 }, // 10 EUR (price in cents)
@@ -20,6 +34,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   console.log("==========================================");
   console.log("API HANDLER CALLED: create-checkout-session");
   console.log("Request method:", req.method);
+  
+  // Check if Stripe is initialized
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.error("API HANDLER ERROR: Stripe Secret Key is missing");
+    return res.status(500).json({ 
+      error: 'Stripe configuration error',
+      message: 'The server is not configured correctly for payment processing. Please contact support.'
+    });
+  }
   
   // Log all headers for debugging
   console.log("All request headers:");
@@ -125,7 +148,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { packSize = 'small' } = req.body;
+    const { packSize = 'small', successUrl, cancelUrl } = req.body;
     
     console.log('Package selection:', { 
       requestedPack: packSize,
@@ -150,6 +173,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       price: priceInEuros
     });
     
+    // Set default success and cancel URLs if not provided
+    const defaultBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    // Include pack size and session ID in the success URL
+    const defaultSuccessUrl = `${defaultBaseUrl}/dashboard/credits?success=true&pack=${packSize}&session_id={CHECKOUT_SESSION_ID}`;
+    const defaultCancelUrl = `${defaultBaseUrl}/dashboard/credits?canceled=true`;
+    
+    // Process successUrl to replace {CHECKOUT_SESSION_ID} placeholder if needed
+    const finalSuccessUrl = successUrl ? 
+      (successUrl.includes('{CHECKOUT_SESSION_ID}') ? 
+        successUrl : 
+        `${successUrl}${successUrl.includes('?') ? '&' : '?'}session_id={CHECKOUT_SESSION_ID}`) : 
+      defaultSuccessUrl;
+    
+    // Use client-provided URLs if available, otherwise use defaults
+    const finalCancelUrl = cancelUrl || defaultCancelUrl;
+    
+    console.log('Checkout session URLs:', {
+      successUrl: finalSuccessUrl,
+      cancelUrl: finalCancelUrl
+    });
+    
     console.log('Initializing Stripe checkout session creation...');
     // Create Checkout Session
     try {
@@ -169,8 +213,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           },
         ],
         mode: 'payment',
-        success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/credits/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/credits/buy`,
+        success_url: finalSuccessUrl,
+        cancel_url: finalCancelUrl,
         client_reference_id: userId,
         metadata: {
           userId,

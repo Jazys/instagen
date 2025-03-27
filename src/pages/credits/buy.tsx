@@ -2,11 +2,10 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { loadStripe } from '@stripe/stripe-js';
 import { useRouter } from 'next/router';
 import { supabase } from '@/lib/supabase';
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+import { toast } from 'sonner';
+import { getUser, getSession } from '@/lib/auth';
 
 const CREDIT_PACKS = [
   {
@@ -41,8 +40,9 @@ export default function BuyCreditsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Properly check authentication using both methods
+  // Check authentication using the auth.ts helper functions
   useEffect(() => {
     async function checkAuth() {
       try {
@@ -51,58 +51,20 @@ export default function BuyCreditsPage() {
         // Skip during server-side rendering
         if (typeof window === 'undefined') return;
         
-        // First try using Supabase's getSession
-        const { data: { session } } = await supabase.auth.getSession();
+        // Use the getUser helper from auth.ts
+        const user = await getUser();
         
-        if (session && session.user) {
-          console.log('Session found via getSession');
-          setUserId(session.user.id);
+        if (user) {
+          console.log('User found:', user.id);
+          setUserId(user.id);
           setIsCheckingAuth(false);
           return;
         }
         
-        // If no session, try initializing from localStorage
-        console.log('No session found, trying localStorage...');
-        
-        try {
-          // Try to refresh the session if possible
-          const { error } = await supabase.auth.refreshSession();
-          
-          // Check if refreshing worked
-          const { data: { session: refreshedSession } } = await supabase.auth.getSession();
-          
-          if (refreshedSession && refreshedSession.user) {
-            console.log('Session refreshed successfully');
-            setUserId(refreshedSession.user.id);
-            setIsCheckingAuth(false);
-            return;
-          }
-          
-          // Fallback: directly parse localStorage
-          console.log('Still no session, directly checking localStorage...');
-          const authData = localStorage.getItem('supabase.auth.token');
-          
-          if (authData) {
-            const parsedAuth = JSON.parse(authData);
-            const storedUserId = parsedAuth?.currentSession?.user?.id;
-            
-            if (storedUserId) {
-              console.log('Found user ID in localStorage:', storedUserId);
-              setUserId(storedUserId);
-              setIsCheckingAuth(false);
-              return;
-            }
-          }
-          
-          // No authentication found
-          console.log('No authentication found');
-          setError('Please log in to purchase credits');
-          setIsCheckingAuth(false);
-        } catch (err) {
-          console.error('Error checking localStorage auth:', err);
-          setError('Authentication error. Please try logging in again.');
-          setIsCheckingAuth(false);
-        }
+        // No user found
+        console.log('No authenticated user found');
+        setError('Please log in to purchase credits');
+        setIsCheckingAuth(false);
       } catch (err) {
         console.error('Error checking auth:', err);
         setError('Authentication error. Please try logging in again.');
@@ -110,11 +72,7 @@ export default function BuyCreditsPage() {
       }
     }
     
-    const timer = setTimeout(() => {
-      checkAuth();
-    }, 100);
-    
-    return () => clearTimeout(timer);
+    checkAuth();
   }, []);
 
   const handleBuyCredits = async (packSize: string) => {
@@ -127,15 +85,24 @@ export default function BuyCreditsPage() {
     setError(null);
     
     try {
-      // Get the current auth token - either from session or localStorage
-      const accessToken = await getAccessToken();
-      
-      // Pass the userId in the request since we're not relying on session cookies
-      const response = await fetch('/api/stripe/create-checkout-session', {
+      // Get the selected credit pack
+      const selectedPack = CREDIT_PACKS.find(pack => pack.id === packSize);
+      if (!selectedPack) {
+        throw new Error('Invalid pack selection');
+      }
+
+      // Check if we have a valid session
+      const session = await getSession();
+      if (!session) {
+        throw new Error('Your session has expired. Please log in again.');
+      }
+
+      // Call our API to add credits
+      const response = await fetch('/api/credits/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({ packSize, userId }),
       });
@@ -143,56 +110,27 @@ export default function BuyCreditsPage() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to create checkout session');
+        throw new Error(data.error || 'Failed to add credits');
       }
       
-      // Redirect to Stripe Checkout
-      const stripe = await stripePromise;
-      if (!stripe) {
-        throw new Error('Stripe failed to load');
-      }
+      // Show a success toast notification
+      toast.success(`Successfully added ${selectedPack.credits} credits to your account!`);
       
-      if (data.url) {
-        // Redirect to the Stripe hosted checkout page
-        window.location.href = data.url;
-      } else {
-        // Use the deprecated redirect method as fallback
-        const { error } = await stripe.redirectToCheckout({
-          sessionId: data.sessionId,
-        });
-        
-        if (error) {
-          throw error;
-        }
-      }
+      // Also set the success message for the UI
+      setSuccessMessage(`Successfully added ${selectedPack.credits} credits to your account!`);
+      
+      // Optional: Redirect to dashboard after a delay
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 3000);
+      
     } catch (err) {
-      console.error('Error initiating checkout:', err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      console.error('Error processing credits purchase:', err);
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(null);
-    }
-  };
-  
-  // Helper function to get access token - try multiple sources
-  const getAccessToken = async () => {
-    try {
-      // First try from the session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        return session.access_token;
-      }
-      
-      // Fallback to localStorage
-      const authData = localStorage.getItem('supabase.auth.token');
-      if (authData) {
-        const parsedAuth = JSON.parse(authData);
-        return parsedAuth?.currentSession?.access_token;
-      }
-      
-      return null;
-    } catch (err) {
-      console.error('Error getting access token:', err);
-      return null;
     }
   };
 
@@ -248,6 +186,13 @@ export default function BuyCreditsPage() {
             </div>
           )}
 
+          {successMessage && (
+            <div className="mb-8 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+              <p className="font-medium">Success!</p>
+              <p>{successMessage}</p>
+            </div>
+          )}
+
           {userId && (
             <div className="grid md:grid-cols-3 gap-6 mb-12">
               {CREDIT_PACKS.map((pack) => (
@@ -292,10 +237,10 @@ export default function BuyCreditsPage() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="font-semibold">Secure Payment</span>
+              <span className="font-semibold">Credit Processing</span>
             </div>
             <p className="text-sm text-gray-600">
-              All payments are processed securely through Stripe. We don't store your payment information.
+              Credits are added directly to your account. No payment processing is required.
             </p>
           </div>
         </div>
