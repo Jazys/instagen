@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
-import { getUser, signOut } from '@/lib/auth'
+import { getUser, signOut, getSession } from '@/lib/auth'
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import Head from 'next/head'
@@ -26,13 +26,8 @@ export default function DashboardPage() {
     const loadUserAndProfile = async () => {
       try {
         setLoading(true)
-        // Check if we have a valid session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession() 
-        
-        if (sessionError) {
-          console.error("Session fetch error:", sessionError.message)
-          throw sessionError
-        }
+        // Check if we have a valid session using the new helper function
+        const session = await getSession()
         
         if (!session) {
           console.warn("No active session found on dashboard")

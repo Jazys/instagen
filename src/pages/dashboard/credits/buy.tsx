@@ -5,6 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import { loadStripe } from '@stripe/stripe-js';
 import { useRouter } from 'next/router';
 import { supabase } from '@/lib/supabase';
+import { getSession, getAccessToken, STORAGE_KEY } from '@/lib/auth';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -45,21 +46,77 @@ export default function BuyCreditsPage() {
   // Check authentication on client side
   useEffect(() => {
     async function checkAuth() {
+      console.log('============= BUY PAGE AUTH CHECK =============');
+      console.log('Checking authentication state...');
+      
       try {
-        console.log('Checking auth...')
-        const { data: { session } } = await supabase.auth.getSession();
+        // First check if we have auth data in localStorage
+        if (typeof window !== 'undefined') {
+          const storedSession = localStorage.getItem(STORAGE_KEY);
+          console.log('Checking localStorage for session:', storedSession ? 'FOUND' : 'NOT FOUND');
+          
+          if (storedSession) {
+            try {
+              const parsedSession = JSON.parse(storedSession);
+              if (parsedSession.user && parsedSession.user.id) {
+                console.log('User identified from localStorage:', parsedSession.user.id);
+                console.log('Session expires at:', parsedSession.expires_at ? 
+                  new Date(parsedSession.expires_at * 1000).toISOString() : 'unknown');
+                
+                // Verify the token hasn't expired
+                if (parsedSession.expires_at) {
+                  const now = Math.floor(Date.now() / 1000);
+                  if (parsedSession.expires_at > now) {
+                    console.log('Session from localStorage is valid');
+                    setUserId(parsedSession.user.id);
+                    
+                    // Set the session in Supabase client for consistency
+                    if (parsedSession.access_token && parsedSession.refresh_token) {
+                      try {
+                        await supabase.auth.setSession({
+                          access_token: parsedSession.access_token,
+                          refresh_token: parsedSession.refresh_token
+                        });
+                      } catch (err) {
+                        console.error('Error setting session in Supabase client:', err);
+                        // We can continue even if this fails
+                      }
+                    }
+                    
+                    setIsCheckingAuth(false);
+                    return;
+                  } else {
+                    console.log('Session from localStorage has expired, attempting refresh');
+                  }
+                }
+              }
+            } catch (e) {
+              console.error("Failed to parse stored session:", e);
+            }
+          }
+        }
         
-        if (!session) {
+        // Fallback to getSession() if localStorage approach fails
+        console.log('Getting session with getSession()...');
+        const session = await getSession();
+        console.log('Session returned:', session ? 'FOUND' : 'NOT FOUND');
+        
+        if (session) {
+          console.log('User identified:', session.user.id);
+          console.log('Session expires at:', session.expires_at ? new Date(session.expires_at * 1000).toISOString() : 'unknown');
+          setUserId(session.user.id);
+        } else {
+          console.log('No session found, redirecting to login');
           router.push('/auth/login');
           return;
         }
-        
-        setUserId(session.user.id);
       } catch (err) {
         console.error('Error checking authentication:', err);
         setError('Authentication error. Please try logging in again.');
       } finally {
         setIsCheckingAuth(false);
+        console.log('Auth check complete');
+        console.log('============================================');
       }
     }
     
@@ -67,7 +124,10 @@ export default function BuyCreditsPage() {
   }, [router]);
 
   const handleBuyCredits = async (packSize: string) => {
+    console.log('Buy button clicked for pack:', packSize);
+    
     if (!userId) {
+      console.log('No userId found, cannot proceed with purchase');
       setError('You must be logged in to purchase credits');
       return;
     }
@@ -76,21 +136,103 @@ export default function BuyCreditsPage() {
     setError(null);
     
     try {
+      // Get access token for authorization - prioritizes localStorage
+      console.log('Retrieving access token from localStorage...');
+      let accessToken = null;
+      
+      // Try localStorage first
+      if (typeof window !== 'undefined') {
+        const storedSession = localStorage.getItem(STORAGE_KEY);
+        console.log('LocalStorage session:', storedSession ? 'FOUND' : 'NOT FOUND');
+        
+        if (storedSession) {
+          try {
+            const parsedSession = JSON.parse(storedSession);
+            console.log('Parsed session:', {
+              hasAccessToken: !!parsedSession.access_token,
+              tokenLength: parsedSession.access_token ? parsedSession.access_token.length : 0,
+              userId: parsedSession.user?.id || 'none',
+              expiresAt: parsedSession.expires_at ? new Date(parsedSession.expires_at * 1000).toISOString() : 'unknown'
+            });
+            
+            if (parsedSession.access_token) {
+              console.log('Access token found in localStorage');
+              accessToken = parsedSession.access_token;
+            }
+          } catch (e) {
+            console.error("Failed to parse stored session:", e);
+          }
+        }
+      }
+      
+      // If not found in localStorage, try getAccessToken
+      if (!accessToken) {
+        console.log('No token in localStorage, trying getAccessToken()...');
+        accessToken = await getAccessToken();
+      }
+      
+      console.log('Access token retrieved:', accessToken ? `YES (length: ${accessToken.length})` : 'NO (token missing)');
+      
+      if (!accessToken) {
+        console.error('No access token available');
+        setError('Authentication error. Please try logging in again.');
+        return;
+      }
+      
+      // Debug log to check token format before sending
+      console.log('Token format check:', {
+        first10Chars: accessToken.substring(0, 10) + '...',
+        length: accessToken.length,
+        containsBearer: accessToken.includes('Bearer')
+      });
+      
+      // Make sure we don't accidentally double-prefix with "Bearer"
+      const authHeader = accessToken.startsWith('Bearer ') 
+        ? accessToken 
+        : `Bearer ${accessToken}`;
+      
+      console.log('Sending request to create-checkout-session API...');
+      console.log('Request details:', {
+        url: '/api/stripe/create-checkout-session',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer [HIDDEN]'
+        },
+        body: {
+          packSize,
+          userId
+        }
+      });
+      
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': authHeader
         },
-        body: JSON.stringify({ packSize }),
+        body: JSON.stringify({ 
+          packSize,
+          userId
+        }),
+      });
+      
+      console.log('API response status:', response.status);
+      console.log('API response headers:', {
+        contentType: response.headers.get('content-type'),
+        contentLength: response.headers.get('content-length')
       });
       
       const data = await response.json();
+      console.log('API response data:', data);
       
       if (!response.ok) {
+        console.error('Checkout session error:', data);
         throw new Error(data.message || 'Failed to create checkout session');
       }
       
       // Redirect to Stripe Checkout
+      console.log('Preparing Stripe redirect...');
       const stripe = await stripePromise;
       if (!stripe) {
         throw new Error('Stripe failed to load');
@@ -98,19 +240,23 @@ export default function BuyCreditsPage() {
       
       if (data.url) {
         // Redirect to the Stripe hosted checkout page
+        console.log('Redirecting to Stripe URL:', data.url.substring(0, 30) + '...');
         window.location.href = data.url;
       } else {
         // Use the deprecated redirect method as fallback
+        console.log('Using redirectToCheckout with sessionId:', data.sessionId);
         const { error } = await stripe.redirectToCheckout({
           sessionId: data.sessionId,
         });
         
         if (error) {
+          console.error('Stripe redirect error:', error);
           throw error;
         }
       }
     } catch (err) {
       console.error('Error initiating checkout:', err);
+      console.error('Error details:', err instanceof Error ? err.stack : 'No stack available');
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setIsLoading(null);

@@ -15,7 +15,7 @@ export const supabase = createClient(
   {
     auth: {
       persistSession: true,  // Enable persistent sessions
-      storageKey: 'sb-auth-token',  // Change the storage key to avoid potential conflicts
+      storageKey: 'sb-auth-token',  // This should match what's used in login/register
       autoRefreshToken: true,  // Automatically refresh the token
       detectSessionInUrl: true,  // Detect session in URL (for OAuth)
       storage: typeof window !== 'undefined' ? localStorage : undefined, // Force localStorage

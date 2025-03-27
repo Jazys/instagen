@@ -10,6 +10,7 @@ import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/router"
 import { useToast } from "@/components/ui/use-toast"
+import { STORAGE_KEY, getSession } from "@/lib/auth"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -29,14 +30,9 @@ export default function RegisterPage() {
     const checkSession = async () => {
       try {
         console.log("Checking for existing session on register page...")
-        const { data, error } = await supabase.auth.getSession()
+        const session = await getSession()
         
-        if (error) {
-          console.error("Session check error:", error.message)
-          throw error
-        }
-
-        if (data?.session) {
+        if (session) {
           console.log("Existing session found, redirecting to dashboard")
           // Redirect to dashboard using window.location.replace for a complete refresh
           window.location.replace('/dashboard')
@@ -113,13 +109,77 @@ export default function RegisterPage() {
             expiresAt: session.expires_at ? new Date(session.expires_at * 1000).toISOString() : 'unknown',
           })
           
+          // Manually create a profile in case the trigger didn't work
+          try {
+            console.log("Manually creating user profile just in case...")
+            // Check if profile already exists
+            const { data: existingProfile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+              
+            if (!existingProfile) {
+              // Profile doesn't exist, create it
+              const { error: profileError } = await supabase
+                .from('profiles')
+                .insert({
+                  id: session.user.id,
+                  email: formData.email,
+                  username: formData.username,
+                  full_name: formData.fullName,
+                  updated_at: new Date().toISOString()
+                });
+                
+              if (profileError) {
+                console.error("Error creating profile manually:", profileError.message);
+                // We'll continue anyway since this is a fallback
+              } else {
+                console.log("Profile created manually successfully");
+              }
+            } else {
+              console.log("Profile already exists, no need to create manually");
+            }
+            
+            // Also check and create user quota if needed
+            const { data: existingQuota } = await supabase
+              .from('user_quotas')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .single();
+              
+            if (!existingQuota) {
+              console.log("Manually creating user quota...");
+              const { error: quotaError } = await supabase
+                .from('user_quotas')
+                .insert({
+                  user_id: session.user.id,
+                  credits_remaining: 100, // Default starting credits
+                  next_reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+                  last_reset_date: new Date().toISOString(),
+                });
+                
+              if (quotaError) {
+                console.error("Error creating user quota manually:", quotaError.message);
+                // Continue anyway as this is just a fallback
+              } else {
+                console.log("User quota created manually successfully");
+              }
+            } else {
+              console.log("User quota already exists, no need to create manually");
+            }
+          } catch (profileError) {
+            console.error("Error in manual profile creation:", profileError);
+            // Continue anyway as this is just a fallback
+          }
+          
           toast({
             title: "Success",
             description: "Registration successful! Redirecting to dashboard...",
           })
           
-          // Make sure the session is stored properly
-          localStorage.setItem('sb-auth-token', JSON.stringify(session))
+          // Store session in localStorage for consistency
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
           console.log("Session saved to storage")
           
           // Wait a moment for session to be fully established

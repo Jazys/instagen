@@ -10,6 +10,7 @@ import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/router"
 import { useToast } from "@/components/ui/use-toast"
+import { STORAGE_KEY, getSession } from "@/lib/auth"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -26,14 +27,9 @@ export default function LoginPage() {
     const checkSession = async () => {
       try {
         console.log("Checking for existing session...")
-        const { data, error } = await supabase.auth.getSession()
+        const session = await getSession()
         
-        if (error) {
-          console.error("Session check error:", error.message)
-          throw error
-        }
-
-        if (data?.session) {
+        if (session) {
           console.log("Existing session found, redirecting to dashboard")
           // Redirect to dashboard using window.location.replace for a complete refresh
           window.location.replace('/dashboard')
@@ -84,7 +80,7 @@ export default function LoginPage() {
       if (data?.session) {
         console.log("Session details:", {
           userId: data.session.user.id,
-          expiresAt: new Date(data.session.expires_at * 1000).toISOString(),
+          expiresAt: data.session.expires_at ? new Date(data.session.expires_at * 1000).toISOString() : 'unknown',
         })
         
         toast({
@@ -92,8 +88,9 @@ export default function LoginPage() {
           description: "Logged in successfully!",
         })
         
-        // Make sure the session is stored properly
-        localStorage.setItem('sb-auth-token', JSON.stringify(data.session))
+        // No need to manually store the session, Supabase handles this
+        // but we'll do it for added assurance of consistency
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.session))
         console.log("Session saved to storage")
         
         // Wait for session to be saved in storage - use a longer timeout
