@@ -9,6 +9,8 @@ import Head from 'next/head'
 import { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { Database } from '@/lib/database.types'
+import useCredits from '@/hooks/useCredits'
+import Link from 'next/link'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
 
@@ -18,6 +20,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const { creditsRemaining, formattedNextReset, isLoading: creditsLoading } = useCredits()
 
   useEffect(() => {
     const loadUserAndProfile = async () => {
@@ -170,6 +173,34 @@ export default function DashboardPage() {
                 <p><strong>Username:</strong> {profile?.username || 'Not set'}</p>
                 <p><strong>Email:</strong> {profile?.email || user?.email || 'Not available'}</p>
                 <p><strong>Account Created:</strong> {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}</p>
+              </div>
+            </div>
+            
+            {/* Credits Card */}
+            <div className="p-6 bg-card rounded-lg border">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Your Credits</h2>
+                <Link href="/dashboard/credits">
+                  <Button variant="outline" size="sm">View Details</Button>
+                </Link>
+              </div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-3xl font-bold">{creditsLoading ? '...' : creditsRemaining}</p>
+                  <p className="text-sm text-muted-foreground">credits remaining</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium">Next Reset</p>
+                  <p className="text-sm text-muted-foreground">{creditsLoading ? '...' : formattedNextReset}</p>
+                </div>
+              </div>
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-muted-foreground">Need more credits?</p>
+                <Link href="/dashboard/credits">
+                  <Button className="bg-green-600 hover:bg-green-700">
+                    Buy Credits
+                  </Button>
+                </Link>
               </div>
             </div>
             

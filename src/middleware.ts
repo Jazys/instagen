@@ -72,16 +72,20 @@ function isRedirectLoop(request: NextRequest): boolean {
 export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl
+  
     
     // Skip data requests to prevent redirection loops
     if (isDataRequest(request.url)) {
       return NextResponse.next()
     }
-
+    
+    console.log('Middleware pathname:', pathname)
     // Skip middleware for static files and API routes
     if (isPublicPath(pathname)) {
       return NextResponse.next()
     }
+
+    
 
     // Create a response now so we can set cookies later
     const res = NextResponse.next()
