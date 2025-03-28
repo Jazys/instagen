@@ -55,8 +55,6 @@ export default function CreditActionButton({
         return;
       }
       
-      console.log(`Executing ${actionType} action with refreshed token`);
-      
       // Make the API call with the fresh token
       const response = await fetch('/api/credits/use-credit', {
         method: 'POST',
@@ -76,7 +74,7 @@ export default function CreditActionButton({
         if (response.status === 402) {
           // Payment Required - Insufficient credits
           toast({
-            title: 'Insufficient Credit Balance',
+            title: 'Need More Credits',
             description: 'You\'ve run out of credits for this action. Purchase more credits to continue using premium features.',
             variant: 'destructive',
             action: (
@@ -115,7 +113,7 @@ export default function CreditActionButton({
         if (onSuccess) onSuccess(data.credits_remaining);
       }
     } catch (error) {
-      console.error('Error using credit:', error);
+      // Handle connection errors without logging
       toast({
         title: 'Connection Error',
         description: 'Failed to connect to the server. Please check your internet connection.',
@@ -124,54 +122,6 @@ export default function CreditActionButton({
       if (onError) onError(error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleError = async (error: ApiError) => {
-    setIsLoading(false);
-    console.error('Credit action error:', error);
-
-    // Handle different error types
-    if (error.status === 402) {
-      toast({
-        title: "Insufficient Credit Balance",
-        description: "You've run out of credits for this action. Purchase more credits to continue using premium features.",
-        variant: "destructive",
-        action: (
-          <ToastAction 
-            altText="Buy Credits" 
-            className="bg-green-600 hover:bg-green-700 text-white"
-            onClick={() => router.push('/dashboard/credits')}
-          >
-            Buy Credits
-          </ToastAction>
-        ),
-      });
-    } else if (error.status === 401) {
-      // Try to refresh the token
-      try {
-        await getSession();
-        toast({
-          title: "Session Refreshed",
-          description: "Your session has been refreshed. Please try again.",
-        });
-      } catch (refreshError) {
-        toast({
-          title: "Authentication Error",
-          description: "Please sign in again to continue.",
-          variant: "destructive",
-        });
-      }
-    } else {
-      toast({
-        title: "Error",
-        description: error.message || "An error occurred. Please try again later.",
-        variant: "destructive",
-      });
-    }
-
-    if (onError) {
-      onError(error);
     }
   };
 

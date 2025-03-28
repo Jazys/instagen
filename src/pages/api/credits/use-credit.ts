@@ -22,11 +22,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { data, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !data.user) {
-      console.error('Error verifying user token:', userError);
       return res.status(401).json({ error: 'Unauthorized - Invalid token' });
     }
-    
-    console.log("Auth successful, user ID:", data.user.id);
 
     // Create a service role client if the service key is available
     let serviceClient;
@@ -41,9 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
       );
-      console.log("Using service role client for credit usage");
     } else {
-      console.log("Service role key not available, using authenticated client");
       // If no service role key, we'll use the user's token for authorization
       serviceClient = createClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -75,7 +70,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .single();
       
       if (fetchError) {
-        console.error('Error fetching user credits:', fetchError);
         return res.status(500).json({ error: 'Failed to fetch user credits' });
       }
       
@@ -101,7 +95,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .eq('user_id', data.user.id);
         
       if (updateError) {
-        console.error('Error updating user credits:', updateError);
         return res.status(500).json({ error: 'Failed to update credits' });
       }
 
@@ -125,11 +118,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         credits_remaining: newCredits
       });
     } catch (error) {
-      console.error('Error processing credit usage:', error);
       return res.status(500).json({ error: 'Failed to process credit usage' });
     }
   } catch (error) {
-    console.error('Error in credit usage API:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 } 

@@ -4,7 +4,6 @@ import { createClient } from '@supabase/supabase-js';
 import { Database } from '@/lib/database.types';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log("API HANDLER CALLED: update-balance");
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -14,26 +13,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Get user from the request
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log("No valid auth header found");
       return res.status(401).json({ error: 'Unauthorized - Missing or invalid token' });
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    console.log("Token extracted, length:", token.length);
     
-    // Verify the token and get the user - PASS THE TOKEN HERE
+    // Verify the token and get the user
     const { data, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !data.user) {
-      console.error('Error verifying user token:', userError);
       return res.status(401).json({ error: 'Unauthorized - Invalid token' });
     }
-    
-    console.log("Auth successful, user ID:", data.user.id);
 
     // Get parameters from request body
     const { creditsToAdd, paymentId } = req.body;
-    console.log("Credits to add:", creditsToAdd, "Payment ID:", paymentId);
     
     if (typeof creditsToAdd !== 'number' || creditsToAdd <= 0) {
       return res.status(400).json({ error: 'Invalid credits amount. Must be a positive number.' });
@@ -53,9 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
       );
-      console.log("Using service role client for database operations");
     } else {
-      console.log("Service role key not available, using authenticated client");
       // If no service role key, we'll use the user's token for authorization
       serviceClient = createClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -86,15 +77,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       let currentCredits = 0;
       
       if (fetchError) {
-        console.log('No existing quota record, will create new one:', fetchError);
         // We'll handle this with upsert
       } else {
         currentCredits = quotaData?.credits_remaining || 0;
-        console.log("Current credits:", currentCredits);
       }
       
       const newCredits = currentCredits + creditsToAdd;
-      console.log("New credits total:", newCredits);
       
       // Update the user's credits in the user_quota table using service client
       const { error: updateError } = await serviceClient
@@ -107,16 +95,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
         
       if (updateError) {
-        console.error('Error updating user credits:', updateError);
         return res.status(500).json({ error: 'Failed to update credits' });
       }
-
-      console.log("Credits updated successfully");
 
       // Log the transaction in the credits_history table if a payment ID is provided
       if (paymentId) {
         try {
-          console.log("Logging transaction to credits_history");
           const { error: historyError } = await serviceClient
             .from('credits_history')
             .insert({
@@ -127,15 +111,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               notes: 'Credit purchase via Stripe',
               created_at: new Date().toISOString()
             });
-            
-          if (historyError) {
-            console.warn('Could not log credits history:', historyError);
-            // Don't fail the whole process if just the history logging fails
-          } else {
-            console.log("Transaction logged successfully");
-          }
+          
+          // Non-critical error - don't fail the whole process
         } catch (historyErr) {
-          console.warn('Error logging credits history (non-critical):', historyErr);
+          // Non-critical error - don't fail the whole process
         }
       }
 
@@ -146,11 +125,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         newBalance: newCredits 
       });
     } catch (error) {
-      console.error('Error updating user credits:', error);
       return res.status(500).json({ error: 'Failed to update credits' });
     }
   } catch (error) {
-    console.error('Error processing credits update:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

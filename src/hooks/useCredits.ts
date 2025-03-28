@@ -50,7 +50,6 @@ export default function useCredits(fetchLogsOnMount = false): UseCreditsResult {
       const date = new Date(dateString);
       return formatDistanceToNow(date, { addSuffix: true });
     } catch (error) {
-      console.error('Error formatting date:', error);
       return 'Unknown';
     }
   };

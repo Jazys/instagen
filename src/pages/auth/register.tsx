@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/router"
 import { useToast } from "@/components/ui/use-toast"
 import { STORAGE_KEY, getSession } from "@/lib/auth"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -32,12 +32,8 @@ export default function RegisterPage() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        console.log("Checking for existing session on register page...")
         const session = await getSession()
-        
         if (session) {
-          console.log("Existing session found, redirecting to dashboard")
-          // Redirect to dashboard using window.location.replace for a complete refresh
           window.location.replace('/dashboard')
           return
         }
@@ -73,7 +69,6 @@ export default function RegisterPage() {
 
     try {
       setLoading(true)
-      console.log("Attempting user registration")
       
       // Sign up the user
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -88,46 +83,33 @@ export default function RegisterPage() {
       })
 
       if (authError) {
-        console.error("Registration error:", authError.message)
         throw authError
       }
 
+      // Store the registered email for the confirmation dialog
+      setRegisteredEmail(formData.email)
+
       if (authData.user) {
-        console.log("User created successfully:", authData.user.id)
-        
-        // Store the registered email for the confirmation dialog
-        setRegisteredEmail(formData.email)
-        
-        // The profiles table should be automatically populated via the Supabase trigger function
-        // But we can verify the session is working
-        
         // Get the session to confirm we're logged in
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
         if (sessionError) {
-          console.error("Session check error:", sessionError.message)
           throw sessionError
         }
 
         if (session) {
-          console.log("Session established, session details:", {
-            userId: session.user.id,
-            expiresAt: session.expires_at ? new Date(session.expires_at * 1000).toISOString() : 'unknown',
-          })
-          
-          // Manually create a profile in case the trigger didn't work
+          // Manually create a profile and quota as backup in case triggers didn't work
           try {
-            console.log("Manually creating user profile just in case...")
             // Check if profile already exists
             const { data: existingProfile } = await supabase
               .from('profiles')
-              .select('*')
+              .select('id')
               .eq('id', session.user.id)
               .single();
               
             if (!existingProfile) {
               // Profile doesn't exist, create it
-              const { error: profileError } = await supabase
+              await supabase
                 .from('profiles')
                 .insert({
                   id: session.user.id,
@@ -136,27 +118,17 @@ export default function RegisterPage() {
                   full_name: formData.fullName,
                   updated_at: new Date().toISOString()
                 });
-                
-              if (profileError) {
-                console.error("Error creating profile manually:", profileError.message);
-                // We'll continue anyway since this is a fallback
-              } else {
-                console.log("Profile created manually successfully");
-              }
-            } else {
-              console.log("Profile already exists, no need to create manually");
             }
             
-            // Also check and create user quota if needed
+            // Check and create user quota if needed
             const { data: existingQuota } = await supabase
               .from('user_quotas')
-              .select('*')
+              .select('user_id')
               .eq('user_id', session.user.id)
               .single();
               
             if (!existingQuota) {
-              console.log("Manually creating user quota...");
-              const { error: quotaError } = await supabase
+              await supabase
                 .from('user_quotas')
                 .insert({
                   user_id: session.user.id,
@@ -164,18 +136,8 @@ export default function RegisterPage() {
                   next_reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
                   last_reset_date: new Date().toISOString(),
                 });
-                
-              if (quotaError) {
-                console.error("Error creating user quota manually:", quotaError.message);
-                // Continue anyway as this is just a fallback
-              } else {
-                console.log("User quota created manually successfully");
-              }
-            } else {
-              console.log("User quota already exists, no need to create manually");
             }
           } catch (profileError) {
-            console.error("Error in manual profile creation:", profileError);
             // Continue anyway as this is just a fallback
           }
           
@@ -186,19 +148,15 @@ export default function RegisterPage() {
           
           // Store session in localStorage for consistency
           localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
-          console.log("Session saved to storage")
           
           // Show email confirmation dialog
           setShowEmailConfirmation(true)
           
           // Wait a moment for session to be fully established
           setTimeout(() => {
-            // Force a browser navigation to dashboard for a full page refresh
-            console.log("Redirecting to dashboard")
             window.location.replace('/dashboard')
           }, 3000) // Use a longer timeout to give users time to read the confirmation
         } else {
-          console.log("No session after registration, redirecting to login")
           toast({
             title: "Success",
             description: "Registration successful! Please check your email to confirm your account.",
@@ -207,13 +165,11 @@ export default function RegisterPage() {
           setShowEmailConfirmation(true)
         }
       } else {
-        console.warn("User object not returned from registration")
         toast({
           title: "Notice",
           description: "Registration initiated. Please check your email to confirm your account.",
         })
         // Show the email confirmation dialog
-        setRegisteredEmail(formData.email)
         setShowEmailConfirmation(true)
       }
     } catch (error) {
@@ -389,7 +345,6 @@ export default function RegisterPage() {
             >
               Go to Login Page
             </Button>
-           
           </DialogFooter>
         </DialogContent>
       </Dialog>

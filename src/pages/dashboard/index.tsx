@@ -11,7 +11,6 @@ import { supabase } from '@/lib/supabase'
 import { Database } from '@/lib/database.types'
 import useCredits from '@/hooks/useCredits'
 import Link from 'next/link'
-import CreditActionButton from '@/components/credit-action-button'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
 
@@ -31,41 +30,29 @@ export default function DashboardPage() {
         const session = await getSession()
         
         if (!session) {
-          console.warn("No active session found on dashboard")
           throw new Error("No active session")
         }
         
         // Get the authenticated user
         const user = await getUser()
         if (!user) {
-          console.warn("User data not found despite valid session")
           throw new Error("User data not available")
         }
         
-        console.log("User authenticated on dashboard:", user.id)
         setUser(user)
         
         // Fetch the user's profile from the profiles table
-        console.log("Fetching profile for user:", user.id)
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single()
           
-        if (error) {
-          // Profile might not exist yet
-          if (error.code === 'PGRST116') {
-            console.warn("Profile not found for user, it may need to be created")
-            // We could create a profile here if needed
-          } else {
-            console.error("Error fetching profile:", error.message, error.code)
-            throw error
-          }
+        if (error && error.code !== 'PGRST116') {
+          throw error
         }
         
         if (data) {
-          console.log("Profile data retrieved:", data.username || data.id)
           setProfile(data)
         }
       } catch (error) {
@@ -90,21 +77,6 @@ export default function DashboardPage() {
     
     loadUserAndProfile()
   }, [router, toast])
-
-  // Add test toast to verify functionality
-  useEffect(() => {
-    if (!loading && user) {
-      // Wait a moment before showing the toast to ensure everything is loaded
-      const timer = setTimeout(() => {
-        toast({
-          title: "Welcome to Dashboard",
-          description: "Your toast notifications are working correctly."
-        });
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [loading, user, toast]);
 
   const handleSignOut = async () => {
     try {
@@ -209,8 +181,6 @@ export default function DashboardPage() {
                 <p><strong>Account Created:</strong> {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}</p>
               </div>
             </div>
-            
-        
             
             {/* Credits Card */}
             <div className="p-6 bg-card rounded-lg border">
@@ -330,8 +300,6 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-            
-
           </div>
         </div>
       </main>

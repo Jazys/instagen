@@ -27,7 +27,6 @@ export default function CreditActionSection() {
           .single();
           
         if (error) {
-          console.error('Error fetching credits:', error);
           toast({
             title: 'Failed to load credits',
             description: 'We could not retrieve your current credit balance.',
@@ -38,7 +37,6 @@ export default function CreditActionSection() {
         
         setCredits(data.credits_remaining);
       } catch (err) {
-        console.error('Error fetching user credits:', err);
         toast({
           title: 'Connection Error',
           description: 'Failed to connect to the server. Please try again later.',
@@ -65,8 +63,6 @@ export default function CreditActionSection() {
 
   // Handle errors from credit actions
   const handleError = (error: any) => {
-    console.error('Credit action error:', error);
-    
     // Check for insufficient credits error (402 Payment Required)
     if (error?.error === 'Insufficient credits' || error?.code === '402') {
       toast({

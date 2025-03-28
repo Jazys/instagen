@@ -26,12 +26,9 @@ export default function LoginPage() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        console.log("Checking for existing session...")
         const session = await getSession()
         
         if (session) {
-          console.log("Existing session found, redirecting to dashboard")
-          // Redirect to dashboard using window.location.replace for a complete refresh
           window.location.replace('/dashboard')
           return
         }
@@ -62,8 +59,6 @@ export default function LoginPage() {
       // First sign out any existing session to ensure a clean login
       await supabase.auth.signOut()
       
-      console.log("Attempting to sign in with:", formData.email)
-      
       // Sign in the user
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
@@ -71,36 +66,23 @@ export default function LoginPage() {
       })
 
       if (error) {
-        console.error("Login error:", error.message)
         throw error
       }
-
-      console.log("Login successful, checking session...")
       
       if (data?.session) {
-        console.log("Session details:", {
-          userId: data.session.user.id,
-          expiresAt: data.session.expires_at ? new Date(data.session.expires_at * 1000).toISOString() : 'unknown',
-        })
-        
         toast({
           title: "Success",
           description: "Logged in successfully!",
         })
         
-        // No need to manually store the session, Supabase handles this
-        // but we'll do it for added assurance of consistency
+        // Store the session for consistency
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data.session))
-        console.log("Session saved to storage")
         
-        // Wait for session to be saved in storage - use a longer timeout
+        // Wait for session to be saved in storage
         setTimeout(() => {
-          // Force a browser navigation to dashboard, using replace for clean history
-          console.log("Redirecting to dashboard")
           window.location.replace('/dashboard')
-        }, 1000) // Increased timeout to 1000ms
+        }, 1000)
       } else {
-        console.warn("No session after login")
         toast({
           title: "Error",
           description: "Could not establish session",

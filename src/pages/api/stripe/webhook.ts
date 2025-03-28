@@ -52,7 +52,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       if (isDevelopment && req.headers['x-webhook-test'] === 'true') {
         // In development with test header, parse the event from the body
-        console.log('DEVELOPMENT MODE: Bypassing Stripe signature verification');
         event = JSON.parse(buf.toString()) as Stripe.Event;
       } else {
         // Production mode, verify the signature
@@ -60,7 +59,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     } catch (err) {
       const error = err as Error;
-      console.error(`Webhook signature verification failed: ${error.message}`);
       return res.status(400).json({ error: `Webhook Error: ${error.message}` });
     }
 
@@ -74,7 +72,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.status(200).json({ received: true });
   } catch (error) {
-    console.error('Error handling webhook:', error);
     res.status(500).json({
       error: 'Failed to process webhook',
       message: error instanceof Error ? error.message : 'Unknown error',
@@ -87,14 +84,12 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
   const credits = parseInt(session.metadata?.credits || '0');
   
   if (!userId || !credits) {
-    console.error('Missing userId or credits in session metadata', session.metadata);
     return;
   }
   
   try {
     // Get the service client to bypass RLS
     const serviceClient = getServiceClient();
-    console.log('Using service client for Stripe webhook payment processing');
     
     // First, get the current credits from user_quotas
     const { data: quotaData, error: quotaError } = await serviceClient
@@ -104,7 +99,6 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
       .single();
     
     if (quotaError) {
-      console.error('Error fetching user quota:', quotaError.message);
       throw quotaError;
     }
     
@@ -121,7 +115,6 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
       .eq('user_id', userId);
     
     if (updateError) {
-      console.error('Error updating user credits:', updateError.message);
       throw updateError;
     }
     
@@ -147,9 +140,7 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
         created_at: new Date().toISOString()
       });
     
-    console.log(`Successfully added ${credits} credits for user ${userId}. New balance: ${newCreditBalance}`);
   } catch (error) {
-    console.error('Error processing successful payment:', error);
     throw error;
   }
 } 
