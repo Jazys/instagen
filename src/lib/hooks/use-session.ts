@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
-import { supabase } from '../supabase';
+import { getSession, onAuthStateChange } from '../auth';
 
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null);
@@ -8,38 +8,44 @@ export function useSession() {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    async function getSession() {
+    let mounted = true;
+
+    // Function to load the session using our optimized auth utilities
+    async function loadSession() {
       try {
         setLoading(true);
         
-        // Get the current session
-        const { data, error } = await supabase.auth.getSession();
+        // Use our optimized getSession function that checks localStorage first
+        const currentSession = await getSession();
         
-        if (error) {
-          throw error;
+        if (mounted) {
+          setSession(currentSession);
+          setError(null);
         }
-        
-        setSession(data.session);
       } catch (err) {
-        console.error('Error getting session:', err);
-        setError(err instanceof Error ? err : new Error(String(err)));
+        if (mounted) {
+          setError(err instanceof Error ? err : new Error(String(err)));
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     }
 
-    // Get the initial session
-    getSession();
+    // Load the initial session
+    loadSession();
 
-    // Set up a listener for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        setSession(newSession);
-      }
-    );
+    // Set up auth state change listener
+    const { data: authListener } = onAuthStateChange((user) => {
+      // When auth state changes, reload the session
+      // This is only triggered on sign in/out events
+      loadSession();
+    });
 
-    // Clean up the listener when the component unmounts
+    // Clean up
     return () => {
+      mounted = false;
       authListener.subscription.unsubscribe();
     };
   }, []);

@@ -26,39 +26,22 @@ const PROTECTED_PATHS = ['/dashboard']
 const AUTH_PATHS = ['/auth/login', '/auth/register']
 
 /**
- * Determines if a path should skip the middleware
+ * Checks if a path should skip middleware processing
  */
-function isPublicPath(path: string): boolean {
-  // Check if it's a public path
-  const matchingPublicPath = PUBLIC_PATHS.find(prefix => path.startsWith(prefix));
-  const isPublic = !!matchingPublicPath;
+function shouldSkipMiddleware(path: string, url: string): boolean {
+  // Skip API routes 
+  if (path.startsWith('/api/')) return true;
+  
+  // Skip Next.js data requests
+  if (url.includes('/_next/data/') || url.includes('.json')) return true;
+  
+  // Check if it matches any public path
+  const isPublicPath = PUBLIC_PATHS.some(prefix => path.startsWith(prefix));
   
   // Check if it has a public file extension
-  const matchingExt = PUBLIC_EXTENSIONS.find(ext => path.endsWith(ext));
-  const hasPublicExt = !!matchingExt;
+  const hasPublicExt = PUBLIC_EXTENSIONS.some(ext => path.endsWith(ext));
   
-  return isPublic || hasPublicExt;
-}
-
-/**
- * Check if a URL is a data request (used by Next.js)
- */
-function isDataRequest(url: string): boolean {
-  return url.includes('/_next/data/') || url.includes('.json');
-}
-
-/**
- * Format expiry date with time remaining
- */
-function formatExpiryInfo(expiresAt?: number): string {
-  if (!expiresAt) return 'No expiry set';
-  
-  const now = Math.floor(Date.now() / 1000);
-  const remaining = expiresAt - now;
-  const minutes = Math.floor(remaining / 60);
-  const seconds = remaining % 60;
-  
-  return `${new Date(expiresAt * 1000).toISOString()} (${minutes}m ${seconds}s remaining)`;
+  return isPublicPath || hasPublicExt;
 }
 
 /**
@@ -69,82 +52,60 @@ function isRedirectLoop(request: NextRequest): boolean {
   return redirectCount >= 2;
 }
 
+/**
+ * Create a redirect response with proper headers to track redirects
+ */
+function createRedirectResponse(url: URL, request: NextRequest): NextResponse {
+  const redirectCount = Number(request.headers.get('x-redirect-count') || '0');
+  const response = NextResponse.redirect(url);
+  response.headers.set('x-redirect-count', String(redirectCount + 1));
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl
     
-    // Enhanced API route detection
-    const isApiRoute = pathname.startsWith('/api/');
-    
-    // Always skip middleware for API routes
-    if (isApiRoute) {
-      return NextResponse.next();
-    }
-    
-    // Skip data requests to prevent redirection loops
-    if (isDataRequest(request.url)) {
-      return NextResponse.next();
-    }
-    
-    // Skip middleware for static files and public paths
-    if (isPublicPath(pathname)) {
+    // Skip middleware for paths that don't need auth checks
+    if (shouldSkipMiddleware(pathname, request.url)) {
       return NextResponse.next();
     }
 
-    // Create a response now so we can set cookies later
+    // Create a response so we can set cookies later
     const res = NextResponse.next();
     
     // Create a Supabase client
     const supabase = createMiddlewareClient({ req: request, res });
     
     // Refresh session if available
-    const { data, error } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
     
-    if (error) {
-      console.error('Middleware session error:', error.message);
-    }
-    
-    const session = data.session;
-    
-    // Check for protected paths
+    // Determine the type of path being accessed
     const isProtectedPath = PROTECTED_PATHS.some(path => pathname.startsWith(path));
     const isAuthPath = AUTH_PATHS.includes(pathname);
-    const redirectLoopDetected = isRedirectLoop(request);
-
-    // If we detect a redirect loop, break it
-    if (redirectLoopDetected) {
+    
+    // Break redirect loops if detected
+    if (isRedirectLoop(request)) {
       return NextResponse.redirect(new URL('/', request.url));
     }
 
-    // If user is accessing a protected path without a session
+    // Handle redirects based on auth state and path type
     if (isProtectedPath && !session) {
-      const redirectCount = Number(request.headers.get('x-redirect-count') || '0');
-      
+      // Redirect unauthenticated users to login
       const redirectUrl = new URL('/auth/login', request.url);
       redirectUrl.searchParams.set('redirectedFrom', pathname);
-      
-      // Set a header to track redirects
-      const redirectResponse = NextResponse.redirect(redirectUrl);
-      redirectResponse.headers.set('x-redirect-count', String(redirectCount + 1));
-      return redirectResponse;
+      return createRedirectResponse(redirectUrl, request);
     }
 
-    // If user is on an auth page with a valid session
     if (isAuthPath && session) {
-      const redirectCount = Number(request.headers.get('x-redirect-count') || '0');
-      
-      const redirectResponse = NextResponse.redirect(new URL('/dashboard', request.url));
-      redirectResponse.headers.set('x-redirect-count', String(redirectCount + 1));
-      return redirectResponse;
+      // Redirect authenticated users to dashboard
+      return createRedirectResponse(new URL('/dashboard', request.url), request);
     }
 
     // Allow the request to proceed normally
     return res;
   } catch (error) {
-    // Log error in production-friendly way
-    console.error('Auth middleware error:', error instanceof Error ? error.message : 'Unknown error');
-    
-    // Always continue the request even if there's an error
+    // Continue the request even if there's an error in the middleware
     return NextResponse.next();
   }
 }
