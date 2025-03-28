@@ -179,4 +179,100 @@ Test the implementation with:
 
 1. **Credit consumption**: Try consuming different amounts of credits
 2. **Month transition**: Test what happens during a month transition
-3. **Concurrent requests**: Ensure credits are managed correctly under load 
+3. **Concurrent requests**: Ensure credits are managed correctly under load
+
+## Credit Action Button
+
+The project includes a reusable component for testing credit consumption. This button can be found at `src/components/credit-action-button.tsx` and provides a simple way to deduct credits when users perform actions.
+
+### Usage
+
+```tsx
+import CreditActionButton from '@/components/credit-action-button';
+
+export default function MyComponent() {
+  // Handle successful credit usage
+  const handleSuccess = (creditsRemaining: number) => {
+    console.log(`Action completed! Credits remaining: ${creditsRemaining}`);
+  };
+
+  return (
+    <CreditActionButton 
+      actionType="my_feature"
+      onSuccess={handleSuccess}
+      variant="default"  // optional UI variant
+      size="default"     // optional size
+    >
+      Perform Action (-1 Credit)
+    </CreditActionButton>
+  );
+}
+```
+
+### Props
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `actionType` | `string` | Identifier for the type of action being performed (default: "test_action") |
+| `onSuccess` | `(creditsRemaining: number) => void` | Callback when credits are successfully used |
+| `onError` | `(error: any) => void` | Callback when an error occurs |
+| `variant` | `'default' \| 'destructive' \| 'outline' \| 'secondary' \| 'ghost' \| 'link'` | Button variant (default: "default") |
+| `size` | `'default' \| 'sm' \| 'lg' \| 'icon'` | Button size (default: "default") |
+| `className` | `string` | Additional CSS classes |
+| `children` | `React.ReactNode` | Button content (default: "Use 1 Credit") |
+
+### Demo Page
+
+A demo page is available at `/demo/credit-action` to showcase the credit action button functionality. The page displays:
+
+1. The user's current credit balance
+2. Test buttons that consume credits
+3. Explanations of how the credit system works
+
+To access this demo, navigate to: [http://localhost:3000/demo/credit-action](http://localhost:3000/demo/credit-action)
+
+## API Endpoints
+
+### POST /api/credits/use-credit
+
+This endpoint allows consuming credits for specific actions. It handles:
+
+- Authentication verification
+- Credit balance checking
+- Deducting credits
+- Logging usage
+
+**Request:**
+
+```json
+{
+  "actionType": "feature_name" // Optional, defaults to "test_action"
+}
+```
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Successfully used 1 credit",
+  "credits_remaining": 42
+}
+```
+
+**Insufficient Credits Response (402):**
+
+```json
+{
+  "error": "Insufficient credits",
+  "credits_remaining": 0,
+  "credits_required": 1
+}
+```
+
+**Authorization Header:**
+
+The endpoint requires a valid JWT token:
+```
+Authorization: Bearer {user_jwt_token}
+``` 

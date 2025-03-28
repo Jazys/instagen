@@ -8,6 +8,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/router';
 import { loadStripe } from '@stripe/stripe-js';
 import { Button } from '@/components/ui/button';
+import CreditActionButton from '@/components/credit-action-button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -436,11 +438,8 @@ export default function CreditsPage() {
       <Navbar />
       <main className="pt-24 min-h-screen bg-gradient-to-b from-background to-background/95">
         <div className="container max-w-4xl mx-auto px-4">
-          <h1 className="text-3xl font-bold mb-6">Credits Dashboard</h1>
-          <p className="text-gray-700 mb-8">
-            Monitor and manage your monthly usage quota. You receive 100 credits at the beginning
-            of each month which can be used for various actions on the platform.
-          </p>
+          <h1 className="text-3xl font-bold mb-6">Credits & Billing</h1>
+          
           
           <CreditsDisplay showUsageLogs={true} />
           

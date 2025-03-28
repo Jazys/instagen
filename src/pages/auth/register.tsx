@@ -11,12 +11,15 @@ import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/router"
 import { useToast } from "@/components/ui/use-toast"
 import { STORAGE_KEY, getSession } from "@/lib/auth"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function RegisterPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [checkingSession, setCheckingSession] = useState(true)
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false)
+  const [registeredEmail, setRegisteredEmail] = useState("")
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -91,6 +94,9 @@ export default function RegisterPage() {
 
       if (authData.user) {
         console.log("User created successfully:", authData.user.id)
+        
+        // Store the registered email for the confirmation dialog
+        setRegisteredEmail(formData.email)
         
         // The profiles table should be automatically populated via the Supabase trigger function
         // But we can verify the session is working
@@ -182,19 +188,23 @@ export default function RegisterPage() {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
           console.log("Session saved to storage")
           
+          // Show email confirmation dialog
+          setShowEmailConfirmation(true)
+          
           // Wait a moment for session to be fully established
           setTimeout(() => {
             // Force a browser navigation to dashboard for a full page refresh
             console.log("Redirecting to dashboard")
             window.location.replace('/dashboard')
-          }, 1000) // Use a longer timeout
+          }, 3000) // Use a longer timeout to give users time to read the confirmation
         } else {
           console.log("No session after registration, redirecting to login")
           toast({
             title: "Success",
-            description: "Registration successful! Please log in.",
+            description: "Registration successful! Please check your email to confirm your account.",
           })
-          router.push("/auth/login")
+          // Show the email confirmation dialog
+          setShowEmailConfirmation(true)
         }
       } else {
         console.warn("User object not returned from registration")
@@ -202,7 +212,9 @@ export default function RegisterPage() {
           title: "Notice",
           description: "Registration initiated. Please check your email to confirm your account.",
         })
-        router.push("/auth/login")
+        // Show the email confirmation dialog
+        setRegisteredEmail(formData.email)
+        setShowEmailConfirmation(true)
       }
     } catch (error) {
       console.error("Registration failed:", error)
@@ -331,6 +343,56 @@ export default function RegisterPage() {
         </div>
       </main>
       <Footer />
+      
+      {/* Email Confirmation Dialog */}
+      <Dialog open={showEmailConfirmation} onOpenChange={setShowEmailConfirmation}>
+        <DialogContent className="max-w-md sm:max-w-lg bg-white border-0 shadow-lg">
+          <DialogHeader className="space-y-3">
+            <div className="mx-auto bg-purple-100 rounded-full p-3 w-16 h-16 flex items-center justify-center">
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className="h-8 w-8 text-purple-600" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" 
+                />
+              </svg>
+            </div>
+            <DialogTitle className="text-center text-2xl font-bold text-gray-800">Check Your Inbox</DialogTitle>
+          </DialogHeader>
+          
+          <div className="my-6 text-center space-y-4">
+            <p className="text-gray-600">
+              We've sent a verification link to:
+            </p>
+            <p className="font-medium text-lg break-all bg-gray-50 py-2 px-3 rounded-md border border-gray-100">
+              {registeredEmail}
+            </p>
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 text-sm text-left text-blue-700">
+              <p>Please verify your email address to activate your account. The email may take a few minutes to arrive and could be in your spam folder.</p>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex flex-col gap-3 mt-2">
+            <Button 
+              onClick={() => {
+                setShowEmailConfirmation(false);
+                router.push('/auth/login');
+              }}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-6 text-base shadow-md hover:shadow-lg transition-all"
+            >
+              Go to Login Page
+            </Button>
+           
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

@@ -188,13 +188,7 @@ export default function CreditsDisplay({ showUsageLogs = true }: CreditsDisplayP
             className="px-3 py-1 text-sm bg-gray-100 rounded-md hover:bg-gray-200"
           >
             Refresh
-          </button>
-          <button 
-            onClick={() => window.location.href = '/credits/buy'}
-            className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Buy Credits
-          </button>
+          </button>   
         </div>
       </div>
       

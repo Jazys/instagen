@@ -1,4 +1,3 @@
-
 import axios from 'axios'
 
 export interface GenerationConfig {
@@ -18,6 +17,7 @@ export interface GenerationConfig {
   colorPalette?: string
   personalityTraits?: string
   contentStyle?: string
+  additionalDetails?: string
 }
 
 export interface GenerationResult {

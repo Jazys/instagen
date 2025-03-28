@@ -2,6 +2,8 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { buffer } from 'micro';
 import Stripe from 'stripe';
 import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { Database } from '@/lib/database.types';
 
 export const config = {
   api: {
@@ -15,6 +17,24 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
+// Create a service role client if the service key is available
+const getServiceClient = () => {
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        }
+      }
+    );
+  }
+  // Fallback to regular client
+  return supabase;
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -26,8 +46,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     let event: Stripe.Event;
     
+    // Check if we're in development mode
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
     try {
-      event = stripe.webhooks.constructEvent(buf.toString(), sig, webhookSecret);
+      if (isDevelopment && req.headers['x-webhook-test'] === 'true') {
+        // In development with test header, parse the event from the body
+        console.log('DEVELOPMENT MODE: Bypassing Stripe signature verification');
+        event = JSON.parse(buf.toString()) as Stripe.Event;
+      } else {
+        // Production mode, verify the signature
+        event = stripe.webhooks.constructEvent(buf.toString(), sig, webhookSecret);
+      }
     } catch (err) {
       const error = err as Error;
       console.error(`Webhook signature verification failed: ${error.message}`);
@@ -62,8 +92,12 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
   }
   
   try {
+    // Get the service client to bypass RLS
+    const serviceClient = getServiceClient();
+    console.log('Using service client for Stripe webhook payment processing');
+    
     // First, get the current credits from user_quotas
-    const { data: quotaData, error: quotaError } = await supabase
+    const { data: quotaData, error: quotaError } = await serviceClient
       .from('user_quotas')
       .select('credits_remaining')
       .eq('user_id', userId)
@@ -78,7 +112,7 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
     const newCreditBalance = currentCredits + credits;
     
     // Update the user's credit balance
-    const { error: updateError } = await supabase
+    const { error: updateError } = await serviceClient
       .from('user_quotas')
       .update({ 
         credits_remaining: newCreditBalance,
@@ -92,13 +126,25 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
     }
     
     // Log the credit purchase
-    await supabase
+    await serviceClient
       .from('credits_usage_logs')
       .insert({
         user_id: userId,
         action_type: 'purchase',
         credits_used: -credits, // Negative to indicate credits added
         credits_remaining: newCreditBalance,
+      });
+    
+    // Also log to credits_history for better tracking
+    await serviceClient
+      .from('credits_history')
+      .insert({
+        user_id: userId,
+        amount: credits,
+        transaction_type: 'purchase',
+        payment_id: session.id,
+        notes: 'Credit purchase via Stripe webhook',
+        created_at: new Date().toISOString()
       });
     
     console.log(`Successfully added ${credits} credits for user ${userId}. New balance: ${newCreditBalance}`);

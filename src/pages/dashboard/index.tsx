@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { getUser, signOut, getSession } from '@/lib/auth'
-import { useToast } from '@/components/ui/use-toast'
+import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import Head from 'next/head'
 import { User } from '@supabase/supabase-js'
@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { Database } from '@/lib/database.types'
 import useCredits from '@/hooks/useCredits'
 import Link from 'next/link'
+import CreditActionButton from '@/components/credit-action-button'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
 
@@ -90,6 +91,21 @@ export default function DashboardPage() {
     loadUserAndProfile()
   }, [router, toast])
 
+  // Add test toast to verify functionality
+  useEffect(() => {
+    if (!loading && user) {
+      // Wait a moment before showing the toast to ensure everything is loaded
+      const timer = setTimeout(() => {
+        toast({
+          title: "Welcome to Dashboard",
+          description: "Your toast notifications are working correctly."
+        });
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loading, user, toast]);
+
   const handleSignOut = async () => {
     try {
       setLoading(true)
@@ -151,11 +167,18 @@ export default function DashboardPage() {
               Welcome, {profile?.username || user?.email?.split('@')[0] || 'User'}
             </h1>
             <div className="flex space-x-3">
+              <Link href="/dashboard/generate">
+                <Button variant="outline" className="bg-purple-600 hover:bg-purple-700 text-white">
+                  Generate
+                </Button>
+              </Link>
               <Link href="/dashboard/profile">
                 <Button variant="outline">
                   Profile
                 </Button>
               </Link>
+              
+                        
               <Button 
                 variant="outline"
                 onClick={handleSignOut}
@@ -167,6 +190,15 @@ export default function DashboardPage() {
           </div>
           
           <div className="grid gap-6">
+
+            {/* Getting Started Card */}
+            <div className="p-6 bg-card rounded-lg border">
+              <h2 className="text-xl font-semibold mb-4">Getting Started</h2>
+              <p className="text-muted-foreground">
+                Welcome to your Instagen dashboard! This is where you'll manage your AI influencer content and settings.
+              </p>
+            </div>
+
             {/* User Profile Card */}
             <div className="p-6 bg-card rounded-lg border">
               <h2 className="text-xl font-semibold mb-4">Your Profile</h2>
@@ -178,13 +210,12 @@ export default function DashboardPage() {
               </div>
             </div>
             
+        
+            
             {/* Credits Card */}
             <div className="p-6 bg-card rounded-lg border">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Your Credits</h2>
-                <Link href="/dashboard/credits">
-                  <Button variant="outline" size="sm">View Details</Button>
-                </Link>
               </div>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -197,15 +228,102 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="flex justify-between items-center">
-                <p className="text-sm text-muted-foreground">Need more credits?</p>
+                <div>
+                  <p className="text-sm text-muted-foreground">Need more credits?</p>
+                  <div className="flex space-x-2 mt-2">
+                    {/* Custom Quick Test Button */}
+                    <Button 
+                      variant="secondary"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          // Show a processing toast
+                          toast({
+                            title: "Processing...",
+                            description: "Testing credit usage"
+                          });
+                          
+                          // Get a fresh session
+                          const freshSession = await getSession();
+                          
+                          if (!freshSession) {
+                            toast({
+                              title: "Authentication Error",
+                              description: "Your session has expired. Please log in again.",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+                          
+                          // Make the API call with the fresh token
+                          const response = await fetch('/api/credits/use-credit', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${freshSession.access_token}`,
+                            },
+                            body: JSON.stringify({
+                              actionType: 'test_quick',
+                            }),
+                          });
+                          
+                          const data = await response.json();
+                          
+                          if (!response.ok) {
+                            // Handle 402 Payment Required
+                            if (response.status === 402) {
+                              toast({
+                                title: "Insufficient Credits",
+                                description: "You don't have enough credits for this action. Please purchase more.",
+                                variant: "destructive",
+                                action: (
+                                  <Button 
+                                    variant="outline" 
+                                    className="bg-green-600 hover:bg-green-700 text-white border-0"
+                                    onClick={() => router.push('/dashboard/credits')}
+                                  >
+                                    Buy Credits
+                                  </Button>
+                                ),
+                              });
+                            } else {
+                              toast({
+                                title: "Error",
+                                description: data.error || "An error occurred",
+                                variant: "destructive"
+                              });
+                            }
+                          } else {
+                            // Success
+                            toast({
+                              title: "Success",
+                              description: `Credit used! You have ${data.credits_remaining} credits remaining.`
+                            });
+                            // Refresh the page after a delay
+                            setTimeout(() => window.location.reload(), 1500);
+                          }
+                        } catch (error) {
+                          console.error("Error:", error);
+                          toast({
+                            title: "Connection Error",
+                            description: "Failed to connect to the server. Please try again.",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    >
+                      Use 1 test credit
+                    </Button>
+                  </div>
+                </div>
                 <div className="flex space-x-2">
                   <Link href="/dashboard/profile">
-                    <Button variant="outline">
+                    <Button variant="outline" size="sm">
                       Profile
                     </Button>
                   </Link>
                   <Link href="/dashboard/credits">
-                    <Button className="bg-green-600 hover:bg-green-700">
+                    <Button className="bg-green-600 hover:bg-green-700" size="sm">
                       Buy Credits
                     </Button>
                   </Link>
@@ -213,13 +331,7 @@ export default function DashboardPage() {
               </div>
             </div>
             
-            {/* Getting Started Card */}
-            <div className="p-6 bg-card rounded-lg border">
-              <h2 className="text-xl font-semibold mb-4">Getting Started</h2>
-              <p className="text-muted-foreground">
-                Welcome to your Instagen dashboard! This is where you'll manage your AI influencer content and settings.
-              </p>
-            </div>
+
           </div>
         </div>
       </main>

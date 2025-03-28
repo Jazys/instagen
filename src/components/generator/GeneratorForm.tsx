@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface GeneratorFormProps {
   onGenerate: (imageUrl: string) => void
+  additionalPrompt?: string
 }
 
-export const GeneratorForm = ({ onGenerate }: GeneratorFormProps) => {
+export const GeneratorForm = ({ onGenerate, additionalPrompt = '' }: GeneratorFormProps) => {
   const [mounted, setMounted] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [imageFormat, setImageFormat] = useState('portrait')
@@ -54,7 +55,14 @@ export const GeneratorForm = ({ onGenerate }: GeneratorFormProps) => {
   const handleGenerate = async () => {
     try {
       setGenerating(true)
-      const result = await generateImage(config)
+      
+      // Include the additional prompt in the configuration
+      const enhancedConfig = {
+        ...config,
+        additionalDetails: additionalPrompt
+      }
+      
+      const result = await generateImage(enhancedConfig)
       onGenerate(result.imageUrl)
       toast({
         title: 'Image Generated',
