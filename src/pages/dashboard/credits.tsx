@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import CreditsDisplay from '@/components/credit/CreditsDisplay';
@@ -47,6 +47,8 @@ export default function CreditsPage() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [paymentHandled, setPaymentHandled] = useState(false);
+  const processedPaymentRef = useRef<string | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -196,56 +198,84 @@ export default function CreditsPage() {
   
   // Enhanced payment status monitoring with retry
   const monitorPaymentCompletion = async (sessionId: string, packSize: string) => {
+    // Skip if already monitoring this session
+    if (processedPaymentRef.current === sessionId) {
+      console.log('Already monitoring this payment session, skipping duplicate call');
+      return;
+    }
+    
     let retries = 0;
     const maxRetries = 5;
     const retryDelay = 2000; // 2 seconds
+    let isMonitoring = true;
     
     // Determine expected credits based on pack size
     let expectedCredits = 0;
     
-    if (packSize === 'small') {
-      // Fetch current balance and add 100
+    try {
+      // Fetch current balance first
       const currentData = await checkCreditBalance();
-      expectedCredits = (currentData?.credits || 0) + 100;
-    } else if (packSize === 'medium') {
-      const currentData = await checkCreditBalance();
-      expectedCredits = (currentData?.credits || 0) + 300;
-    } else if (packSize === 'large') {
-      const currentData = await checkCreditBalance();
-      expectedCredits = (currentData?.credits || 0) + 1000;
+      const baseCredits = currentData?.credits || 0;
+      
+      if (packSize === 'small') {
+        expectedCredits = baseCredits + 100;
+      } else if (packSize === 'medium') {
+        expectedCredits = baseCredits + 300;
+      } else if (packSize === 'large') {
+        expectedCredits = baseCredits + 1000;
+      }
+      
+      console.log(`Monitoring credit update. Base: ${baseCredits}, Expecting total of ${expectedCredits} credits`);
+      
+      const checkCreditsWithRetry = async () => {
+        if (!isMonitoring) return;
+        
+        if (retries >= maxRetries) {
+          console.log('Max retries reached, attempting manual update');
+          // Try manual update as last resort
+          await updateCreditsManually(sessionId, packSize);
+          isMonitoring = false;
+          return;
+        }
+        
+        retries++;
+        console.log(`Checking credits update (attempt ${retries}/${maxRetries})...`);
+        
+        try {
+          const updated = await checkCreditBalance(expectedCredits);
+          if (updated === false) {
+            // Credits not yet updated, retry after delay
+            console.log(`Credits not yet updated, retrying in ${retryDelay/1000} seconds...`);
+            setTimeout(checkCreditsWithRetry, retryDelay);
+          } else if (updated) {
+            console.log('Credits updated successfully!');
+            isMonitoring = false;
+            // Refresh the page to show updated credits
+            // Use location.href instead of reload for a clean page load
+            window.location.href = '/dashboard/credits';
+          } else {
+            // Error checking, retry
+            console.log('Error checking credit update, retrying...');
+            setTimeout(checkCreditsWithRetry, retryDelay);
+          }
+        } catch (err) {
+          console.error('Error during credit check retry:', err);
+          // Still retry despite the error
+          setTimeout(checkCreditsWithRetry, retryDelay);
+        }
+      };
+      
+      // Start the retry process
+      setTimeout(checkCreditsWithRetry, retryDelay);
+    } catch (err) {
+      console.error('Error setting up credit monitoring:', err);
     }
     
-    console.log(`Monitoring credit update. Expecting total of ${expectedCredits} credits`);
-    
-    const checkCreditsWithRetry = async () => {
-      if (retries >= maxRetries) {
-        console.log('Max retries reached, attempting manual update');
-        // Try manual update as last resort
-        await updateCreditsManually(sessionId, packSize);
-        return;
-      }
-      
-      retries++;
-      console.log(`Checking credits update (attempt ${retries}/${maxRetries})...`);
-      
-      const updated = await checkCreditBalance(expectedCredits);
-      if (updated === false) {
-        // Credits not yet updated, retry after delay
-        console.log(`Credits not yet updated, retrying in ${retryDelay/1000} seconds...`);
-        setTimeout(checkCreditsWithRetry, retryDelay);
-      } else if (updated) {
-        console.log('Credits updated successfully!');
-        // Refresh the page to show updated credits
-        window.location.reload();
-      } else {
-        // Error checking, retry
-        console.log('Error checking credit update, retrying...');
-        setTimeout(checkCreditsWithRetry, retryDelay);
-      }
+    // Return a cleanup function
+    return () => {
+      console.log('Cleaning up credit monitoring');
+      isMonitoring = false;
     };
-    
-    // Start the retry process
-    setTimeout(checkCreditsWithRetry, retryDelay);
   };
   
   // Last resort: manual credit update
@@ -268,6 +298,22 @@ export default function CreditsPage() {
       
       console.log(`Attempting manual credit update: ${creditsToAdd} credits`);
       
+      // Check if we've already tried this payment ID
+      const processedPayments = localStorage.getItem('processed_payments');
+      const processedIds = processedPayments ? JSON.parse(processedPayments) : [];
+      
+      if (processedIds.includes(sessionId)) {
+        console.log('This payment has already been processed manually, skipping');
+        toast({
+          title: "Already Processed",
+          description: "This payment has already been processed. Refreshing page to show updated credits.",
+        });
+        
+        // Navigate instead of reload
+        window.location.href = '/dashboard/credits';
+        return;
+      }
+      
       const response = await fetch('/api/credits/update-balance', {
         method: 'POST',
         headers: {
@@ -281,6 +327,13 @@ export default function CreditsPage() {
       });
       
       if (response.ok) {
+        // Store this payment ID as processed
+        processedIds.push(sessionId);
+        localStorage.setItem('processed_payments', JSON.stringify(processedIds));
+        
+        // Remove from pending payments
+        localStorage.removeItem('last_successful_payment');
+        
         const data = await response.json();
         console.log('Manual credit update successful:', data);
         toast({
@@ -288,8 +341,10 @@ export default function CreditsPage() {
           description: `${creditsToAdd} credits have been added to your account.`,
         });
         
-        // Refresh the page to show updated credits
-        window.location.reload();
+        // Navigate to credits page after short delay
+        setTimeout(() => {
+          window.location.href = '/dashboard/credits';
+        }, 1000);
       } else {
         console.error('Manual credit update failed:', await response.text());
         toast({
@@ -300,52 +355,66 @@ export default function CreditsPage() {
       }
     } catch (err) {
       console.error('Error in manual credit update:', err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while updating your credits.",
+        variant: "destructive",
+      });
     }
   };
 
   // Check for success/canceled query params from Stripe redirect
   useEffect(() => {
     const handlePaymentStatus = async () => {
-      if (router.query.success === 'true') {
+      // Skip if we've already handled this payment session
+      const sessionId = router.query.session_id as string;
+      if (paymentHandled || (sessionId && processedPaymentRef.current === sessionId)) {
+        return;
+      }
+
+      if (router.query.success === 'true' && sessionId) {
+        // Mark this payment as handled
+        setPaymentHandled(true);
+        processedPaymentRef.current = sessionId;
+        
         toast({
           title: "Payment Successful!",
           description: "Processing your credit purchase...",
         });
         
-        // If session_id is provided in the URL, we can use it to verify and update credits if needed
-        const sessionId = router.query.session_id as string;
         // Get packSize from URL if available, or from localStorage if we stored it before redirecting
         const packSize = (router.query.pack as string) || 'small';
         
-        if (sessionId) {
-          try {
-            console.log(`Processing payment success for session ${sessionId} and pack ${packSize}`);
-            
-            // Store these details in localStorage as a backup
-            localStorage.setItem('last_successful_payment', JSON.stringify({
-              sessionId,
-              packSize,
-              userId,
-              timestamp: new Date().toISOString()
-            }));
-            
-            // Start monitoring for credit update
-            if (userId) {
-              monitorPaymentCompletion(sessionId, packSize);
-            } else {
-              // If no user ID yet, store this in localStorage and handle when user is authenticated
-              console.log('User ID not available yet, storing payment info for later processing');
-            }
-          } catch (err) {
-            console.error('Error handling payment success:', err);
+        try {
+          console.log(`Processing payment success for session ${sessionId} and pack ${packSize}`);
+          
+          // Store these details in localStorage as a backup
+          localStorage.setItem('last_successful_payment', JSON.stringify({
+            sessionId,
+            packSize,
+            userId,
+            timestamp: new Date().toISOString()
+          }));
+          
+          // Start monitoring for credit update
+          if (userId) {
+            monitorPaymentCompletion(sessionId, packSize);
+          } else {
+            // If no user ID yet, store this in localStorage and handle when user is authenticated
+            console.log('User ID not available yet, storing payment info for later processing');
           }
-        } else {
-          console.error('No session ID provided in success URL');
+        } catch (err) {
+          console.error('Error handling payment success:', err);
         }
         
-        // Clear the query parameters after handling
-        router.replace('/dashboard/credits', undefined, { shallow: true });
+        // Only clear the query parameters after we've handled everything
+        // Use setTimeout to avoid immediate state updates that could trigger re-renders
+        setTimeout(() => {
+          router.replace('/dashboard/credits', undefined, { shallow: true });
+        }, 100);
       } else if (router.query.canceled === 'true') {
+        setPaymentHandled(true);
+        
         toast({
           title: "Payment Canceled",
           description: "Your credit purchase was canceled.",
@@ -353,25 +422,32 @@ export default function CreditsPage() {
         });
         
         // Clear the query parameters after handling
-        router.replace('/dashboard/credits', undefined, { shallow: true });
+        setTimeout(() => {
+          router.replace('/dashboard/credits', undefined, { shallow: true });
+        }, 100);
       }
     };
     
-    if (router.query.success || router.query.canceled) {
+    if ((router.query.success || router.query.canceled) && !paymentHandled) {
       handlePaymentStatus();
     }
-  }, [router.query, toast, userId, router]);
+  }, [router.query, toast, userId, router, monitorPaymentCompletion, paymentHandled]);
 
   // Check for pending payments on page load
   useEffect(() => {
     const checkPendingPayments = async () => {
-      if (!userId) return;
+      if (!userId || paymentHandled) return;
       
       try {
         // Check if we have a stored successful payment that might need processing
         const storedPayment = localStorage.getItem('last_successful_payment');
         if (storedPayment) {
           const paymentData = JSON.parse(storedPayment);
+          
+          // Skip if we've already processed this payment
+          if (processedPaymentRef.current === paymentData.sessionId) {
+            return;
+          }
           
           // Only process if it's recent (last 24 hours)
           const paymentTime = new Date(paymentData.timestamp);
@@ -380,6 +456,9 @@ export default function CreditsPage() {
           
           if (hoursSincePayment < 24 && paymentData.sessionId) {
             console.log('Found recent unprocessed payment, checking status:', paymentData);
+            
+            // Mark this payment as being handled
+            processedPaymentRef.current = paymentData.sessionId;
             
             // First check if credits are already updated
             const currentData = await checkCreditBalance();
@@ -408,7 +487,7 @@ export default function CreditsPage() {
     };
     
     checkPendingPayments();
-  }, [userId]);
+  }, [userId, monitorPaymentCompletion, paymentHandled]);
 
   if (loading) {
     return (

@@ -5,6 +5,8 @@ import { useSession } from '@/lib/hooks/use-session';
 import { supabase } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import Link from 'next/link';
+import { ToastAction } from '@/components/ui/toast';
 
 export default function CreditActionSection() {
   const { session } = useSession();
@@ -70,9 +72,13 @@ export default function CreditActionSection() {
         description: 'You\'ve run out of credits for this action. Purchase more credits to continue using premium features.',
         variant: 'destructive',
         action: (
-          <a href="/dashboard/credits" className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md text-sm font-medium">
+          <ToastAction 
+            altText="Buy Credits" 
+            className="bg-green-600 hover:bg-green-700 text-white"
+            onClick={() => window.location.href = '/dashboard/credits'}
+          >
             Buy Credits
-          </a>
+          </ToastAction>
         ),
       });
     }

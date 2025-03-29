@@ -41,13 +41,11 @@ export class CreditsService {
         .single();
       
       if (error) {
-        console.error('Error fetching user quota:', error.message);
         return null;
       }
       
       return data;
     } catch (error) {
-      console.error('Error in getUserQuota:', error);
       return null;
     }
   }
@@ -74,13 +72,11 @@ export class CreditsService {
         });
       
       if (error) {
-        console.error('Error using credits:', error.message);
         throw new Error(`Failed to use credits: ${error.message}`);
       }
       
       return data as UseCreditsResponse;
     } catch (error) {
-      console.error('Error in useCredits:', error);
       throw error;
     }
   }
@@ -104,13 +100,11 @@ export class CreditsService {
         .limit(limit);
       
       if (error) {
-        console.error('Error fetching credit usage logs:', error.message);
         return [];
       }
       
       return data;
     } catch (error) {
-      console.error('Error in getCreditUsageLogs:', error);
       return [];
     }
   }

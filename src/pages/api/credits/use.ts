@@ -59,7 +59,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse, userId: string
       });
     }
   } catch (error) {
-    console.error('Error using credits:', error);
     return res.status(500).json({ 
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'An unexpected error occurred'

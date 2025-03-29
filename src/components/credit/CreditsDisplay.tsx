@@ -17,7 +17,7 @@ export default function CreditsDisplay({ showUsageLogs = true }: CreditsDisplayP
     formattedNextReset, 
     isLoading, 
     error, 
-    useCredits, 
+    useCredits: spendCredits, 
     refreshQuota,
     usageLogs 
   } = useCreditsHook(showUsageLogs);
@@ -38,7 +38,7 @@ export default function CreditsDisplay({ showUsageLogs = true }: CreditsDisplayP
     setActionStatus({ loading: true });
     
     try {
-      const success = await useCredits(actionType, creditsToUse);
+      const success = await spendCredits(actionType, creditsToUse);
       
       if (success) {
         setActionStatus({

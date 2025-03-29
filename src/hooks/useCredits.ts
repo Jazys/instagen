@@ -103,9 +103,7 @@ export default function useCredits(fetchLogsOnMount = false): UseCreditsResult {
           .order('created_at', { ascending: false })
           .limit(10);
         
-        if (logsError) {
-          console.error('Error fetching logs:', logsError.message);
-        } else if (logsData) {
+        if (!logsError && logsData) {
           setUsageLogs(logsData.map(log => ({
             id: log.id,
             actionType: log.action_type,
@@ -116,7 +114,6 @@ export default function useCredits(fetchLogsOnMount = false): UseCreditsResult {
         }
       }
     } catch (error) {
-      console.error('Error fetching quota:', error);
       setState(prev => ({
         ...prev,
         isLoading: false,
@@ -180,7 +177,6 @@ export default function useCredits(fetchLogsOnMount = false): UseCreditsResult {
       
       return true;
     } catch (error) {
-      console.error('Error using credits:', error);
       setState(prev => ({
         ...prev,
         isLoading: false,
