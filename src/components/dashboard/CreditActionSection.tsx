@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import CreditActionButton from '@/components/credit-action-button';
+import CreditActionButton from '@/components/credit/credit-action-button';
 import { useSession } from '@/lib/hooks/use-session';
 import { supabase } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';

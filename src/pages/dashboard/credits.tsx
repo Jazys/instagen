@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import CreditsDisplay from '@/components/CreditsDisplay';
+import CreditsDisplay from '@/components/credit/CreditsDisplay';
 import Head from 'next/head';
 import { getUser, getSession } from '@/lib/auth';
 import { useToast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/router';
 import { loadStripe } from '@stripe/stripe-js';
 import { Button } from '@/components/ui/button';
-import CreditActionButton from '@/components/credit-action-button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
