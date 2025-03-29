@@ -166,6 +166,7 @@ To integrate with other parts of the application:
 1. **API Actions**: When an action requires credits, make a call to `/api/credits/use` first
 2. **Dashboard**: Include the `CreditsDisplay` component in user dashboard
 3. **Upgrade Flow**: Direct users with insufficient credits to upgrade options
+4. **External API Integration**: For external systems, utilize the API endpoint at `/api/credits/external_call_use_token` using an API key (see documentation at `/docs/external-api-usage.md`)
 
 ## Deployment Considerations
 

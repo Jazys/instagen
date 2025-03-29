@@ -179,6 +179,22 @@ export default function DashboardPage() {
                 <p><strong>Username:</strong> {profile?.username || 'Not set'}</p>
                 <p><strong>Email:</strong> {profile?.email || user?.email || 'Not available'}</p>
                 <p><strong>Account Created:</strong> {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}</p>
+                <p><strong>API Key:</strong> <span className="font-mono text-sm">{user?.id || 'Not available'}</span> <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="ml-2 h-6 px-2 text-xs"
+                  onClick={() => {
+                    if (user?.id) {
+                      navigator.clipboard.writeText(user.id);
+                      toast({
+                        title: "API Key Copied",
+                        description: "The API Key has been copied to your clipboard",
+                      });
+                    }
+                  }}
+                >
+                  Copy
+                </Button></p>
               </div>
             </div>
             
