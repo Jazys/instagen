@@ -50,6 +50,13 @@ export default function CreditsPage() {
   const [paymentHandled, setPaymentHandled] = useState(false);
   const processedPaymentRef = useRef<string | null>(null);
 
+  // Add state for manual payment processing UI
+  const [pendingPaymentDetails, setPendingPaymentDetails] = useState<{
+    sessionId: string;
+    packSize: string;
+    processingFailed: boolean;
+  } | null>(null);
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -198,11 +205,9 @@ export default function CreditsPage() {
   
   // Enhanced payment status monitoring with retry
   const monitorPaymentCompletion = async (sessionId: string, packSize: string) => {
-    // Skip if already monitoring this session
-    if (processedPaymentRef.current === sessionId) {
-      console.log('Already monitoring this payment session, skipping duplicate call');
-      return;
-    }
+        
+    // Set this session as being processed
+    processedPaymentRef.current = sessionId;
     
     let retries = 0;
     const maxRetries = 5;
@@ -231,10 +236,13 @@ export default function CreditsPage() {
         if (!isMonitoring) return;
         
         if (retries >= maxRetries) {
-          console.log('Max retries reached, attempting manual update');
-          // Try manual update as last resort
-          await updateCreditsManually(sessionId, packSize);
-          isMonitoring = false;
+          console.log('Max retries reached, showing manual update option');
+          // Show manual update option to the user
+          setPendingPaymentDetails({
+            sessionId,
+            packSize,
+            processingFailed: true
+          });
           return;
         }
         
@@ -246,10 +254,21 @@ export default function CreditsPage() {
           if (updated === false) {
             // Credits not yet updated, retry after delay
             console.log(`Credits not yet updated, retrying in ${retryDelay/1000} seconds...`);
+            
+            // If we're on the last retry, start showing the manual update option
+            if (retries === maxRetries - 1) {
+              setPendingPaymentDetails({
+                sessionId,
+                packSize,
+                processingFailed: false
+              });
+            }
+            
             setTimeout(checkCreditsWithRetry, retryDelay);
           } else if (updated) {
             console.log('Credits updated successfully!');
             isMonitoring = false;
+            setPendingPaymentDetails(null);
             // Refresh the page to show updated credits
             // Use location.href instead of reload for a clean page load
             window.location.href = '/dashboard/credits';
@@ -278,8 +297,28 @@ export default function CreditsPage() {
     };
   };
   
+  // Function to handle manual update request
+  const handleManualUpdate = async (force = false) => {
+    if (!pendingPaymentDetails) return;
+    
+    try {
+      await updateCreditsManually(
+        pendingPaymentDetails.sessionId,
+        pendingPaymentDetails.packSize,
+        force
+      );
+    } catch (err) {
+      console.error('Error during manual update:', err);
+      toast({
+        title: "Error",
+        description: "Failed to manually update credits. Please contact support.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   // Last resort: manual credit update
-  const updateCreditsManually = async (sessionId: string, packSize: string) => {
+  const updateCreditsManually = async (sessionId: string, packSize: string, forceUpdate = false) => {
     try {
       const session = await getSession();
       if (!session) {
@@ -302,7 +341,7 @@ export default function CreditsPage() {
       const processedPayments = localStorage.getItem('processed_payments');
       const processedIds = processedPayments ? JSON.parse(processedPayments) : [];
       
-      if (processedIds.includes(sessionId)) {
+      if (processedIds.includes(sessionId) && !forceUpdate) {
         console.log('This payment has already been processed manually, skipping');
         toast({
           title: "Already Processed",
@@ -313,7 +352,25 @@ export default function CreditsPage() {
         window.location.href = '/dashboard/credits';
         return;
       }
+
+      // Verify with Stripe before crediting (to ensure the payment was actually successful)
+      const verifyResponse = await fetch(`/api/stripe/verify-payment?session_id=${sessionId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
       
+      if (!verifyResponse.ok && !forceUpdate) {
+        console.error('Payment verification failed:', await verifyResponse.text());
+        toast({
+          title: "Verification Failed",
+          description: "We couldn't verify this payment with Stripe. Please contact support with your payment ID.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // If verification succeeded or force update is enabled, proceed with the update
       const response = await fetch('/api/credits/update-balance', {
         method: 'POST',
         headers: {
@@ -322,14 +379,18 @@ export default function CreditsPage() {
         },
         body: JSON.stringify({
           creditsToAdd,
-          paymentId: sessionId
+          paymentId: sessionId,
+          forceUpdate: forceUpdate,  // Send this flag to the API for logging
+          verificationStatus: verifyResponse.ok ? 'verified' : 'bypassed'
         }),
       });
       
       if (response.ok) {
         // Store this payment ID as processed
-        processedIds.push(sessionId);
-        localStorage.setItem('processed_payments', JSON.stringify(processedIds));
+        if (!processedIds.includes(sessionId)) {
+          processedIds.push(sessionId);
+          localStorage.setItem('processed_payments', JSON.stringify(processedIds));
+        }
         
         // Remove from pending payments
         localStorage.removeItem('last_successful_payment');
@@ -608,6 +669,63 @@ export default function CreditsPage() {
               </div>
             </div>
           </div>
+          
+          {/* Manual Credit Processing UI */}
+          {pendingPaymentDetails && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-amber-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3 flex-1">
+                  <h3 className="text-sm font-medium text-amber-800">
+                    {pendingPaymentDetails.processingFailed 
+                      ? "Payment Processing Failed" 
+                      : "Payment Processing In Progress"}
+                  </h3>
+                  <div className="mt-2 text-sm text-amber-700">
+                    <p>
+                      {pendingPaymentDetails.processingFailed
+                        ? "We're having trouble automatically updating your credits after your payment."
+                        : "We're still processing your payment and updating your credits."}
+                    </p>
+                    
+                    <div className="mt-4 flex gap-2">
+                      {pendingPaymentDetails.processingFailed ? (
+                        <>
+                          <button
+                            onClick={() => handleManualUpdate(false)}
+                            className="px-3 py-1.5 text-xs font-medium rounded-md bg-amber-100 text-amber-800 hover:bg-amber-200"
+                          >
+                            Try Manual Update
+                          </button>
+                          <button
+                            onClick={() => handleManualUpdate(true)}
+                            className="px-3 py-1.5 text-xs font-medium rounded-md bg-amber-700 text-white hover:bg-amber-800"
+                          >
+                            Force Update
+                          </button>
+                        </>
+                      ) : (
+                        <p className="text-xs text-amber-600">
+                          Please wait while we complete this process...
+                        </p>
+                      )}
+                      
+                      <button
+                        onClick={() => setPendingPaymentDetails(null)}
+                        className="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
       <Footer />

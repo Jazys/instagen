@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Get parameters from request body
-    const { creditsToAdd, paymentId } = req.body;
+    const { creditsToAdd, paymentId, forceUpdate, verificationStatus } = req.body;
     
     if (typeof creditsToAdd !== 'number' || creditsToAdd <= 0) {
       return res.status(400).json({ error: 'Invalid credits amount. Must be a positive number.' });
@@ -65,6 +65,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       );
     }
 
+    // Check if this payment has already been processed to prevent double-crediting
+    // Only check if not a force update request
+    if (paymentId && !forceUpdate) {
+      const { data: existingTransaction, error: checkError } = await serviceClient
+        .from('credits_history')
+        .select('id')
+        .eq('payment_id', paymentId)
+        .eq('user_id', data.user.id)
+        .single();
+      
+      if (!checkError && existingTransaction) {
+        return res.status(409).json({ 
+          error: 'Payment already processed', 
+          message: 'This payment has already been processed and credits added to your account.'
+        });
+      }
+    }
+
     // Update user credits in the user_quota table
     try {
       // First get current user quota
@@ -101,6 +119,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Log the transaction in the credits_history table if a payment ID is provided
       if (paymentId) {
         try {
+          const notes = forceUpdate 
+            ? `Credit purchase via Stripe (Manual Force: ${verificationStatus})` 
+            : 'Credit purchase via Stripe';
+            
           const { error: historyError } = await serviceClient
             .from('credits_history')
             .insert({
@@ -108,8 +130,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               amount: creditsToAdd,
               transaction_type: 'purchase',
               payment_id: paymentId,
-              notes: 'Credit purchase via Stripe',
-              created_at: new Date().toISOString()
+              notes: notes,
+              created_at: new Date().toISOString(),
+              metadata: forceUpdate ? { 
+                manuallyForced: true,
+                verificationStatus,
+                forcedAt: new Date().toISOString()
+              } : null
             });
           
           // Non-critical error - don't fail the whole process
@@ -122,7 +149,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ 
         success: true, 
         message: `Successfully added ${creditsToAdd} credits`,
-        newBalance: newCredits 
+        newBalance: newCredits,
+        wasForced: !!forceUpdate
       });
     } catch (error) {
       return res.status(500).json({ error: 'Failed to update credits' });
