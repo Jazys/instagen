@@ -4,6 +4,9 @@ import { User, Session, AuthChangeEvent } from '@supabase/supabase-js'
 // Define the storage key in a single place to ensure consistency
 export const STORAGE_KEY = 'sb-auth-token'
 
+// Get the base URL from environment or fallback to localhost
+export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+
 /**
  * Retrieve a stored session from localStorage
  * @returns The parsed session or null if not available
@@ -72,7 +75,7 @@ export async function signOut(): Promise<void> {
     
     // Force a reload to clear any lingering state
     if (typeof window !== 'undefined') {
-      window.location.replace('/');
+      window.location.replace(`${BASE_URL}/`);
     }
   } catch (error) {
     throw error;

@@ -10,7 +10,7 @@ import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/router"
 import { useToast } from "@/components/ui/use-toast"
-import { STORAGE_KEY, getSession } from "@/lib/auth"
+import { STORAGE_KEY, getSession, BASE_URL } from "@/lib/auth"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -29,7 +29,7 @@ export default function LoginPage() {
         const session = await getSession()
         
         if (session) {
-          window.location.replace('/dashboard')
+          window.location.replace(`${BASE_URL}/dashboard`)
           return
         }
       } catch (error) {
@@ -80,7 +80,7 @@ export default function LoginPage() {
         
         // Wait for session to be saved in storage
         setTimeout(() => {
-          window.location.replace('/dashboard')
+          window.location.replace(`${BASE_URL}/dashboard`)
         }, 1000)
       } else {
         toast({

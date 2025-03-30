@@ -8,6 +8,9 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
   throw new Error('Missing environment variable NEXT_PUBLIC_SUPABASE_ANON_KEY')
 }
 
+// Get base URL from environment or fallback to localhost
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
 // Create a single instance of the Supabase client to be used throughout the app
 export const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

@@ -10,7 +10,7 @@ import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/router"
 import { useToast } from "@/components/ui/use-toast"
-import { STORAGE_KEY, getSession } from "@/lib/auth"
+import { STORAGE_KEY, getSession, BASE_URL } from "@/lib/auth"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function RegisterPage() {
@@ -34,7 +34,7 @@ export default function RegisterPage() {
       try {
         const session = await getSession()
         if (session) {
-          window.location.replace('/dashboard')
+          window.location.replace(`${BASE_URL}/dashboard`)
           return
         }
       } catch (error) {
@@ -78,7 +78,8 @@ export default function RegisterPage() {
           data: {
             full_name: formData.fullName,
             username: formData.username,
-          }
+          },
+          emailRedirectTo: `${BASE_URL}/dashboard`,
         }
       })
 
@@ -154,7 +155,7 @@ export default function RegisterPage() {
           
           // Wait a moment for session to be fully established
           setTimeout(() => {
-            window.location.replace('/dashboard')
+            window.location.replace(`${BASE_URL}/dashboard`)
           }, 3000) // Use a longer timeout to give users time to read the confirmation
         } else {
           toast({
