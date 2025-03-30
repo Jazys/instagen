@@ -139,6 +139,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         metadata: {
           credits: pack.credits.toString(),
           packSize: packSize,
+          prePaymentBalance: req.body.prePaymentBalance?.toString() || '0',
         },
       });
 

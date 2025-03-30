@@ -105,15 +105,20 @@ export default function CreditsPage() {
         throw new Error('Your session has expired. Please log in again.');
       }
       
+      // Check and save the current balance BEFORE initiating payment
+      const currentBalanceData = await checkCreditBalance();
+      const prePaymentBalance = currentBalanceData?.credits || 0;
+      
       // Also store the pack details in localStorage as a fallback
       localStorage.setItem('last_credit_purchase', JSON.stringify({
         packSize,
         userId,
+        prePaymentBalance,
         timestamp: new Date().toISOString()
       }));
       
       // Create success and cancel URLs with pack information
-      const successUrl = `${window.location.origin}/dashboard/credits?success=true&pack=${packSize}&session_id={CHECKOUT_SESSION_ID}`;
+      const successUrl = `${window.location.origin}/dashboard/credits?success=true&pack=${packSize}&session_id={CHECKOUT_SESSION_ID}&pre_balance=${prePaymentBalance}`;
       const cancelUrl = `${window.location.origin}/dashboard/credits?canceled=true`;
       
       // Call the Stripe API to create a checkout session
@@ -126,6 +131,7 @@ export default function CreditsPage() {
         body: JSON.stringify({ 
           packSize, 
           userId,
+          prePaymentBalance,
           successUrl,
           cancelUrl
         }),
@@ -204,8 +210,13 @@ export default function CreditsPage() {
   };
   
   // Enhanced payment status monitoring with retry
-  const monitorPaymentCompletion = async (sessionId: string, packSize: string) => {
-        
+  const monitorPaymentCompletion = async (sessionId: string, packSize: string, prePaymentBalance?: number) => {
+    // Skip if already monitoring this session
+    /*if (processedPaymentRef.current === sessionId) {
+      console.log('Already monitoring this payment session, skipping duplicate call');
+      return;
+    }*/
+    
     // Set this session as being processed
     processedPaymentRef.current = sessionId;
     
@@ -218,9 +229,17 @@ export default function CreditsPage() {
     let expectedCredits = 0;
     
     try {
-      // Fetch current balance first
-      const currentData = await checkCreditBalance();
-      const baseCredits = currentData?.credits || 0;
+      // Use pre-payment balance if provided, otherwise fetch current balance
+      let baseCredits = prePaymentBalance || 0; // Default to 0 if undefined
+      
+      if (baseCredits === 0 && prePaymentBalance === undefined) {
+        // Fallback to fetching current balance if pre-payment balance not provided
+        const currentData = await checkCreditBalance();
+        baseCredits = currentData?.credits || 0;
+        console.log('Pre-payment balance not provided, using current balance:', baseCredits);
+      } else {
+        console.log('Using pre-payment balance:', baseCredits);
+      }
       
       if (packSize === 'small') {
         expectedCredits = baseCredits + 100;
@@ -446,6 +465,9 @@ export default function CreditsPage() {
         // Get packSize from URL if available, or from localStorage if we stored it before redirecting
         const packSize = (router.query.pack as string) || 'small';
         
+        // Get pre-payment balance from query params
+        const prePaymentBalance = parseInt(router.query.pre_balance as string, 10) || 0;
+        
         try {
           console.log(`Processing payment success for session ${sessionId} and pack ${packSize}`);
           
@@ -454,12 +476,13 @@ export default function CreditsPage() {
             sessionId,
             packSize,
             userId,
+            prePaymentBalance,
             timestamp: new Date().toISOString()
           }));
           
           // Start monitoring for credit update
           if (userId) {
-            monitorPaymentCompletion(sessionId, packSize);
+            monitorPaymentCompletion(sessionId, packSize, prePaymentBalance);
           } else {
             // If no user ID yet, store this in localStorage and handle when user is authenticated
             console.log('User ID not available yet, storing payment info for later processing');
@@ -524,15 +547,21 @@ export default function CreditsPage() {
             // First check if credits are already updated
             const currentData = await checkCreditBalance();
             
+            // Use stored pre-payment balance if available
+            const baseCredits = paymentData.prePaymentBalance !== undefined ? 
+              paymentData.prePaymentBalance : (currentData?.credits || 0);
+            
             // Determine expected credits
             let additionalCredits = 100;
             if (paymentData.packSize === 'medium') additionalCredits = 300;
             if (paymentData.packSize === 'large') additionalCredits = 1000;
             
-            // If credits seem low, try to process the payment
-            if (currentData && currentData.credits < additionalCredits) {
+            const expectedCredits = baseCredits + additionalCredits;
+            
+            // If credits not yet at expected level, try to process the payment
+            if (currentData && currentData.credits < expectedCredits) {
               console.log('Credits may need updating, attempting to process payment');
-              monitorPaymentCompletion(paymentData.sessionId, paymentData.packSize);
+              monitorPaymentCompletion(paymentData.sessionId, paymentData.packSize, baseCredits);
             } else {
               console.log('Credits appear to be already updated, clearing stored payment');
               localStorage.removeItem('last_successful_payment');

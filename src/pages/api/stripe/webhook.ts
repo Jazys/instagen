@@ -17,6 +17,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
+// Simple logging function for webhook events
+const logToFile = (message: string, data?: any) => {
+  console.log(`[STRIPE_WEBHOOK] ${message}`, data || '');
+};
+
 // Create a service role client if the service key is available
 const getServiceClient = () => {
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -82,8 +87,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
   const userId = session.client_reference_id;
   const credits = parseInt(session.metadata?.credits || '0');
+  // Get pre-payment balance from metadata if available
+  const prePaymentBalance = parseInt(session.metadata?.prePaymentBalance || '0');
+  
+  logToFile('Starting handleSuccessfulPayment', { 
+    sessionId: session.id,
+    userId,
+    credits,
+    prePaymentBalance
+  });
   
   if (!userId || !credits) {
+    logToFile('Missing userId or credits, cannot process payment', { userId, credits });
     return;
   }
   
@@ -91,7 +106,8 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
     // Get the service client to bypass RLS
     const serviceClient = getServiceClient();
     
-    // First, get the current credits from user_quotas
+    // First, get the current credits from user_quotas to make sure we're not duplicating
+    logToFile('Fetching current credits', { userId });
     const { data: quotaData, error: quotaError } = await serviceClient
       .from('user_quotas')
       .select('credits_remaining')
@@ -99,11 +115,36 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
       .single();
     
     if (quotaError) {
+      logToFile('Error fetching quota data', { error: quotaError });
       throw quotaError;
     }
     
     const currentCredits = quotaData?.credits_remaining || 0;
+    
+    // If we have a pre-payment balance, use it to determine if payment was already applied
+    if (prePaymentBalance > 0) {
+      const expectedCredits = prePaymentBalance + credits;
+      
+      // If current credits are already at or above expected, payment was likely already processed
+      if (currentCredits >= expectedCredits) {
+        logToFile('Credits already at or above expected level', { 
+          currentCredits, 
+          expectedCredits, 
+          prePaymentBalance 
+        });
+        return; // Exit early, no need to update again
+      }
+    }
+    
     const newCreditBalance = currentCredits + credits;
+    
+    logToFile('Updating credits', { 
+      userId,
+      currentCredits,
+      creditsToAdd: credits,
+      newCreditBalance,
+      prePaymentBalance: prePaymentBalance || 'not provided'
+    });
     
     // Update the user's credit balance
     const { error: updateError } = await serviceClient

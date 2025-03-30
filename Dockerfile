@@ -53,6 +53,10 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Install sharp package globally for image optimization
+RUN apk add --no-cache build-base libc6-compat
+RUN npm install --production=true sharp
+
 # Copy necessary files from the builder stage
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
