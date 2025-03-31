@@ -28,6 +28,54 @@ export default function RegisterPage() {
     username: "",
   })
 
+  // Function to safely show toast with fallback
+  const showToast = (title: string, description: string, variant: "destructive" | "default" = "destructive") => {
+    
+    // Try direct DOM approach first for guaranteed visibility
+    const toastDiv = document.createElement('div');
+    toastDiv.style.position = 'fixed';
+    toastDiv.style.bottom = '20px';
+    toastDiv.style.right = '20px';
+    toastDiv.style.backgroundColor = variant === 'destructive' ? '#f87171' : '#60a5fa';
+    toastDiv.style.color = 'white';
+    toastDiv.style.padding = '1rem';
+    toastDiv.style.borderRadius = '0.5rem';
+    toastDiv.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+    toastDiv.style.zIndex = '9999';
+    toastDiv.style.maxWidth = '350px';
+    toastDiv.style.overflow = 'hidden';
+    
+    const titleEl = document.createElement('div');
+    titleEl.style.fontWeight = 'bold';
+    titleEl.textContent = title;
+    
+    const descEl = document.createElement('div');
+    descEl.textContent = description;
+    
+    toastDiv.appendChild(titleEl);
+    toastDiv.appendChild(descEl);
+    document.body.appendChild(toastDiv);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+      if (document.body.contains(toastDiv)) {
+        document.body.removeChild(toastDiv);
+      }
+    }, 5000);
+    
+    // Also try the regular toast
+    try {
+      toast({
+        title,
+        description,
+        variant,
+      });
+    } catch (e) {
+      console.error("Toast hook failed:", e);
+      // DOM fallback already handled above
+    }
+  };
+
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
@@ -59,129 +107,246 @@ export default function RegisterPage() {
     e.preventDefault()
     
     if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive",
-      })
+      showToast("Error", "Passwords do not match");
       return
     }
 
     try {
       setLoading(true)
       
-      // Sign up the user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: formData.fullName,
-            username: formData.username,
-          },
-          emailRedirectTo: `${BASE_URL}/dashboard`,
-        }
-      })
-
-      if (authError) {
-        throw authError
+      // Validate email format before proceeding
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(formData.email)) {
+        showToast("Error", "Please enter a valid email address");
+        setLoading(false)
+        return
       }
 
-      // Store the registered email for the confirmation dialog
-      setRegisteredEmail(formData.email)
+      // Validate username (no special characters except underscore, 3-20 chars)
+      const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/
+      if (!usernameRegex.test(formData.username)) {
+        showToast("Username Error", "Username must be 3-20 characters and contain only letters, numbers, and underscores");
+        setLoading(false)
+        return
+      }
 
-      if (authData.user) {
+      // NEW: Check if username already exists before attempting signup
+      try {
+        console.log("Checking if username is available...");
+        const { data: existingProfile, error } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', formData.username)
+          .maybeSingle();
+          
+        if (existingProfile) {
+          showToast("Username Already Taken", "This username is already in use. Please choose a different one.");
+          setLoading(false);
+          return;
+        }
+        
+        if (error && error.code !== 'PGRST116') { // Code for no rows returned
+          console.warn("Error checking username availability:", error);
+          // Continue anyway - better to try registration than block unnecessarily
+        }
+      } catch (usernameCheckError) {
+        console.error("Error checking username:", usernameCheckError);
+        // Continue with registration attempt
+      }
+      
+      // Implement retry logic for signup
+      let authData = null;
+      let authError = null;
+      let retries = 0;
+      const maxRetries = 3;
+      
+      while (retries < maxRetries) {
+        try {
+          // Sign up the user with a retry mechanism
+          const result = await supabase.auth.signUp({
+            email: formData.email,
+            password: formData.password,
+            options: {
+              data: {
+                full_name: formData.fullName,
+                username: formData.username,
+              },
+              emailRedirectTo: `${BASE_URL}/dashboard`,
+            }
+          });
+          
+          authData = result.data;
+          authError = result.error;
+          
+          if (!authError) {
+            break; // Success, exit retry loop
+          }
+          
+          // If error is not related to server issues, don't retry
+          if (authError.status !== 500 && authError.status !== 503 && !authError.message.includes('network')) {
+            break;
+          }
+          
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          retries++;
+        } catch (e) {
+          retries++;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      if (authError) {
+        throw authError;
+      }
+
+      // Update how we handle user creation and profile setup
+      if (authData?.user) {
+        // Store the registered email for the confirmation dialog
+        setRegisteredEmail(formData.email);
+        
+        // Give the database trigger time to complete (longer wait to ensure trigger completes)
+        console.log("User created, waiting for database trigger to complete...");
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
         // Get the session to confirm we're logged in
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          throw sessionError
+          console.error("Session error:", sessionError);
+          // Continue - we'll try to recover
         }
 
-        if (session) {
-          // Manually create a profile and quota as backup in case triggers didn't work
+        // First check if the trigger has already created the profile and quota
+        let triggerWorked = false;
+        try {
+          const [profileResult, quotaResult] = await Promise.all([
+            supabase.from('profiles').select('id').eq('id', authData.user.id).single(),
+            supabase.from('user_quotas').select('user_id').eq('user_id', authData.user.id).single()
+          ]);
+          
+          if (!profileResult.error && profileResult.data && !quotaResult.error && quotaResult.data) {
+            console.log("Database trigger successfully created profile and quota");
+            triggerWorked = true;
+          } else {
+            console.log("Database trigger didn't complete successfully:", {
+              profileError: profileResult.error,
+              quotaError: quotaResult.error
+            });
+          }
+        } catch (checkError) {
+          console.error("Error checking if trigger worked:", checkError);
+        }
+        
+        // Only use fallbacks if the trigger didn't work
+        if (!triggerWorked) {
+          console.log("Using fallback methods to create profile and quota...");
+          
+          // Try the server API first for better security
+          let apiWorked = false;
           try {
-            // Check if profile already exists
-            const { data: existingProfile } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('id', session.user.id)
-              .single();
+            const profileResponse = await fetch(`${BASE_URL}/api/user/setup-profile`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email: formData.email,
+                username: formData.username,
+                fullName: formData.fullName,
+                userId: authData.user.id
+              }),
+              credentials: 'include'
+            });
+            
+            if (profileResponse.ok) {
+              console.log("Profile and quota created via API");
+              apiWorked = true;
+            } else {
+              console.warn("Profile setup via API failed:", await profileResponse.text());
+            }
+          } catch (apiError) {
+            console.error("Profile API error:", apiError);
+          }
+          
+          // Final fallback: direct DB access as last resort
+          if (!apiWorked && session) {
+            try {
+              console.log("Attempting direct database fallback...");
               
-            if (!existingProfile) {
-              // Profile doesn't exist, create it
+              // Try to create profile
               await supabase
                 .from('profiles')
-                .insert({
+                .upsert({
                   id: session.user.id,
                   email: formData.email,
                   username: formData.username,
                   full_name: formData.fullName,
                   updated_at: new Date().toISOString()
-                });
-            }
-            
-            // Check and create user quota if needed
-            const { data: existingQuota } = await supabase
-              .from('user_quotas')
-              .select('user_id')
-              .eq('user_id', session.user.id)
-              .single();
+                }, { onConflict: 'id' });
               
-            if (!existingQuota) {
+              // Try to create quota
               await supabase
                 .from('user_quotas')
-                .insert({
+                .upsert({
                   user_id: session.user.id,
-                  credits_remaining: 100, // Default starting credits
-                  next_reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+                  credits_remaining: 100,
+                  next_reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                   last_reset_date: new Date().toISOString(),
-                });
+                }, { onConflict: 'user_id' });
+                
+              console.log("Direct database fallback completed");
+            } catch (directDbError) {
+              console.error("Direct profile setup error:", directDbError);
+              // We've tried everything, continue anyway
             }
-          } catch (profileError) {
-            // Continue anyway as this is just a fallback
           }
-          
-          toast({
-            title: "Success",
-            description: "Registration successful! Redirecting to dashboard...",
-          })
-          
+        }
+        
+        // Handle session and redirection regardless of how profile was created
+        if (session) {
           // Store session in localStorage for consistency
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+          
+          showToast("Success", "Registration successful! Redirecting to dashboard...", "default");
           
           // Show email confirmation dialog
-          setShowEmailConfirmation(true)
+          setShowEmailConfirmation(true);
           
           // Wait a moment for session to be fully established
           setTimeout(() => {
-            window.location.replace(`${BASE_URL}/dashboard`)
-          }, 3000) // Use a longer timeout to give users time to read the confirmation
+            window.location.replace(`${BASE_URL}/dashboard`);
+          }, 3000);
         } else {
-          toast({
-            title: "Success",
-            description: "Registration successful! Please check your email to confirm your account.",
-          })
+          showToast("Success", "Registration successful! Please check your email to confirm your account.", "default");
           // Show the email confirmation dialog
-          setShowEmailConfirmation(true)
+          setShowEmailConfirmation(true);
         }
       } else {
-        toast({
-          title: "Notice",
-          description: "Registration initiated. Please check your email to confirm your account.",
-        })
+        showToast("Notice", "Registration initiated. Please check your email to confirm your account.", "default");
         // Show the email confirmation dialog
-        setShowEmailConfirmation(true)
+        setShowEmailConfirmation(true);
       }
     } catch (error) {
-      console.error("Registration failed:", error)
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to register",
-        variant: "destructive",
-      })
+      console.error("Registration failed:", error);
+      let errorMessage = "Failed to register";
+      
+      if (error instanceof Error) {
+        // Custom error message handling based on error type
+        if (error.message.includes("User already registered")) {
+          errorMessage = "This email is already registered. Please log in instead.";
+        } else if (error.message.includes("rate limit")) {
+          errorMessage = "Too many attempts. Please try again later.";
+        } else if (error.message.includes("password")) {
+          errorMessage = "Password is too weak. Use at least 8 characters with a mix of letters, numbers and symbols.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      showToast("Error", errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 

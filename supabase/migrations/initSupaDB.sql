@@ -100,39 +100,98 @@ ALTER TABLE ONLY public.user_quotas
 -- Name: handle_new_user(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.handle_new_user() RETURNS trigger
+CREATE OR REPLACE FUNCTION public.handle_new_user() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
+DECLARE
+  username_val TEXT;
+  unique_username TEXT;
+  counter INT := 0;
+  max_attempts INT := 5;
 BEGIN
-  -- Insert into profiles table
-  INSERT INTO public.profiles (
-    id,
-    email,
-    full_name,
-    username,
-    avatar_url
-  )
-  VALUES (
-    new.id,
-    new.email,
-    coalesce(new.raw_user_meta_data->>'full_name', ''),
-    coalesce(new.raw_user_meta_data->>'username', ''),
-    coalesce(new.raw_user_meta_data->>'avatar_url', '')
-  );
+  -- Get the username from metadata or fallback to email
+  username_val := coalesce(new.raw_user_meta_data->>'username', '');
   
-  -- Insert into user_quotas table
-  INSERT INTO public.user_quotas (
-    user_id, 
-    credits_remaining, 
-    last_reset_date, 
-    next_reset_date
-  )
-  VALUES (
-    new.id, 
-    100, 
-    now(), 
-    (date_trunc('month', now()) + interval '1 month')
-  );
+  -- If no username provided, create one from email
+  IF username_val = '' THEN
+    username_val := split_part(new.email, '@', 1);
+  END IF;
+  
+  -- First try inserting with the original username
+  BEGIN
+    -- Insert into profiles table
+    INSERT INTO public.profiles (
+      id,
+      email,
+      full_name,
+      username,
+      avatar_url
+    )
+    VALUES (
+      new.id,
+      new.email,
+      coalesce(new.raw_user_meta_data->>'full_name', ''),
+      username_val,
+      coalesce(new.raw_user_meta_data->>'avatar_url', '')
+    );
+  EXCEPTION 
+    WHEN unique_violation THEN
+      -- If there's a username conflict, try with an incrementing number
+      LOOP
+        EXIT WHEN counter >= max_attempts;
+        counter := counter + 1;
+        unique_username := username_val || counter::text;
+        
+        BEGIN
+          INSERT INTO public.profiles (
+            id,
+            email,
+            full_name,
+            username,
+            avatar_url
+          )
+          VALUES (
+            new.id,
+            new.email,
+            coalesce(new.raw_user_meta_data->>'full_name', ''),
+            unique_username,
+            coalesce(new.raw_user_meta_data->>'avatar_url', '')
+          );
+          -- If we get here, the insert succeeded
+          EXIT;
+        EXCEPTION 
+          WHEN unique_violation THEN
+            -- Keep looping
+        END;
+      END LOOP;
+    WHEN others THEN
+      -- Log other errors but don't fail the trigger
+      RAISE LOG 'Error in handle_new_user creating profile: %', SQLERRM;
+  END;
+  
+  -- Always try to create the quota regardless of profile success
+  BEGIN
+    -- Insert into user_quotas table
+    INSERT INTO public.user_quotas (
+      user_id, 
+      credits_remaining, 
+      last_reset_date, 
+      next_reset_date
+    )
+    VALUES (
+      new.id, 
+      100, 
+      now(), 
+      (date_trunc('month', now()) + interval '1 month')
+    );
+  EXCEPTION 
+    WHEN unique_violation THEN
+      -- Quota already exists, ignore
+      RAISE LOG 'User quota already exists for user %', new.id;
+    WHEN others THEN
+      -- Log other errors but don't fail the trigger
+      RAISE LOG 'Error in handle_new_user creating quota: %', SQLERRM;
+  END;
   
   RETURN new;
 END;
