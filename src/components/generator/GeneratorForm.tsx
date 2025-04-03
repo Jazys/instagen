@@ -13,9 +13,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 interface GeneratorFormProps {
   onGenerate: (imageUrl: string) => void
   additionalPrompt?: string
+  personCharacteristics?: {
+    gender: string
+    bodyType: string
+    chestSize: string
+    buttSize: string
+    skinTone: number
+    eyeColor: string
+    hairColor: string
+    hairStyle: string
+    firstName: string
+    lastName: string
+    nationality: string
+    age: number
+  }
 }
 
-export const GeneratorForm = ({ onGenerate, additionalPrompt = '' }: GeneratorFormProps) => {
+export const GeneratorForm = ({ onGenerate, additionalPrompt = '', personCharacteristics }: GeneratorFormProps) => {
   const [mounted, setMounted] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [imageFormat, setImageFormat] = useState('portrait')
@@ -56,11 +70,77 @@ export const GeneratorForm = ({ onGenerate, additionalPrompt = '' }: GeneratorFo
     try {
       setGenerating(true)
       
-      // Include the additional prompt in the configuration
+      // Construct a prompt that includes all the person characteristics
+      let personPrompt = '';
+      if (personCharacteristics) {
+        // Gender
+        personPrompt += `${personCharacteristics.gender === 'male' ? 'male' : 'female'} person, `;
+        
+        // Body Type
+        switch(personCharacteristics.bodyType) {
+          case 'skinny': personPrompt += 'skinny body type, '; break;
+          case 'fit': personPrompt += 'fit and well-built body, '; break;
+          case 'athletic': personPrompt += 'athletic body type, '; break;
+          case 'curvy': personPrompt += 'curvy body type, '; break;
+        }
+        
+        // Chest Size (only if female or relevant)
+        if (personCharacteristics.gender === 'female') {
+          switch(personCharacteristics.chestSize) {
+            case 'small': personPrompt += 'small chest, '; break;
+            case 'medium': personPrompt += 'medium sized chest, '; break;
+            case 'large': personPrompt += 'large chest, '; break;
+            case 'very-large': personPrompt += 'very large chest, '; break;
+          }
+        }
+        
+        // Butt Size
+        switch(personCharacteristics.buttSize) {
+          case 'small': personPrompt += 'small butt, '; break;
+          case 'medium': personPrompt += 'medium sized butt, '; break;
+          case 'large': personPrompt += 'large butt, '; break;
+          case 'very-large': personPrompt += 'very large butt, '; break;
+        }
+        
+        // Skin Tone
+        const skinToneDesc = personCharacteristics.skinTone < 25 ? 'very light' :
+                           personCharacteristics.skinTone < 50 ? 'light' :
+                           personCharacteristics.skinTone < 75 ? 'tan' : 'dark';
+        personPrompt += `${skinToneDesc} skin tone, `;
+        
+        // Eye Color
+        if (personCharacteristics.eyeColor) {
+          personPrompt += `${personCharacteristics.eyeColor} eyes, `;
+        }
+        
+        // Hair Color and Style
+        if (personCharacteristics.hairColor && personCharacteristics.hairStyle) {
+          personPrompt += `${personCharacteristics.hairStyle} ${personCharacteristics.hairColor} hair, `;
+        }
+        
+        // Age
+        personPrompt += `${personCharacteristics.age} years old, `;
+        
+        // Name and Nationality (if provided)
+        if (personCharacteristics.firstName && personCharacteristics.lastName) {
+          personPrompt += `named ${personCharacteristics.firstName} ${personCharacteristics.lastName}, `;
+        }
+        
+        if (personCharacteristics.nationality) {
+          personPrompt += `${personCharacteristics.nationality} nationality, `;
+        }
+      }
+      
+      // Combine with additional prompt details
+      const fullPrompt = personPrompt + additionalPrompt;
+      
+      // Include the enhanced prompt in the configuration
       const enhancedConfig = {
         ...config,
-        additionalDetails: additionalPrompt
+        additionalDetails: fullPrompt
       }
+      
+      console.log("Generated prompt:", fullPrompt);
       
       const result = await generateImage(enhancedConfig)
       onGenerate(result.imageUrl)

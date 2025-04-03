@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 import { STORAGE_KEY } from './auth';
+import { getSession } from '@/lib/auth';
 
 export type ApiHandler = (
   req: NextApiRequest, 

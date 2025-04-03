@@ -290,6 +290,7 @@ export default function CreditsPage() {
             setPendingPaymentDetails(null);
             // Refresh the page to show updated credits
             // Use location.href instead of reload for a clean page load
+            //need pour rafraichir les credit ??
             window.location.href = '/dashboard/credits';
           } else {
             // Error checking, retry
