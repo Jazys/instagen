@@ -40,7 +40,7 @@ CREATE TABLE public.profiles (
 
 CREATE TABLE public.user_quotas (
     user_id uuid NOT NULL,
-    credits_remaining integer DEFAULT 100 NOT NULL,
+    credits_remaining integer DEFAULT 5 NOT NULL,
     last_reset_date timestamp with time zone DEFAULT now() NOT NULL,
     next_reset_date timestamp with time zone DEFAULT (date_trunc('month'::text, now()) + '1 mon'::interval) NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -439,3 +439,54 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.user_quotas ENABLE ROW LEVEL SECURITY;
+
+
+-- Create the generations table
+CREATE TABLE public.generations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  enhanced_prompt TEXT NOT NULL,
+  enhanced_prompt_external TEXT,
+  image_url TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  
+  -- Optional metadata fields
+  width INTEGER DEFAULT 1024,
+  height INTEGER DEFAULT 1024
+);
+
+-- Enable Row Level Security
+ALTER TABLE public.generations ENABLE ROW LEVEL SECURITY;
+
+-- Create policy for users to read only their own generations
+CREATE POLICY "Users can view their own generations"
+  ON public.generations
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Create policy for users to insert their own generations
+CREATE POLICY "Users can insert their own generations"
+  ON public.generations
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Create index for faster querying by user_id
+CREATE INDEX generations_user_id_idx ON public.generations (user_id);
+
+-- Allow users to read from the generated-images bucket
+CREATE POLICY "Users can view their own images"
+  ON storage.objects
+  FOR SELECT
+  USING (
+    auth.uid() = (storage.foldername(name))[1]::uuid 
+    AND bucket_id = 'generated-images'
+  );
+
+-- Allow users to upload to the generated-images bucket
+CREATE POLICY "Users can upload their own images"
+  ON storage.objects
+  FOR INSERT
+  WITH CHECK (
+    auth.uid() = (storage.foldername(name))[1]::uuid 
+    AND bucket_id = 'generated-images'
+  );
