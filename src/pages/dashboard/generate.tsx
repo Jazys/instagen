@@ -332,7 +332,7 @@ export default function GeneratePage() {
             <CardHeader>
               <CardTitle>Credit Usage</CardTitle>
               <CardDescription>
-                Each image generation costs 3 credits, and customization costs 2 credits. Make sure you have enough credits before generating.
+                Each image generation costs 1 credit, and customization costs 1 credits. Make sure you have enough credits before generating.
               </CardDescription>
             </CardHeader>
           </Card>

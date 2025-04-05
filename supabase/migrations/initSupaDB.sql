@@ -40,7 +40,7 @@ CREATE TABLE public.profiles (
 
 CREATE TABLE public.user_quotas (
     user_id uuid NOT NULL,
-    credits_remaining integer DEFAULT 100 NOT NULL,
+    credits_remaining integer DEFAULT 5 NOT NULL,
     last_reset_date timestamp with time zone DEFAULT now() NOT NULL,
     next_reset_date timestamp with time zone DEFAULT (date_trunc('month'::text, now()) + '1 mon'::interval) NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -472,4 +472,21 @@ CREATE POLICY "Users can insert their own generations"
 
 -- Create index for faster querying by user_id
 CREATE INDEX generations_user_id_idx ON public.generations (user_id);
-```
+
+-- Allow users to read from the generated-images bucket
+CREATE POLICY "Users can view their own images"
+  ON storage.objects
+  FOR SELECT
+  USING (
+    auth.uid() = (storage.foldername(name))[1]::uuid 
+    AND bucket_id = 'generated-images'
+  );
+
+-- Allow users to upload to the generated-images bucket
+CREATE POLICY "Users can upload their own images"
+  ON storage.objects
+  FOR INSERT
+  WITH CHECK (
+    auth.uid() = (storage.foldername(name))[1]::uuid 
+    AND bucket_id = 'generated-images'
+  );

@@ -78,7 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
     }
 
     // Credits required for this operation
-    const creditsRequired = 3; // Advanced generation costs more
+    const creditsRequired = 1; // Advanced generation costs more
 
     // Check and consume credits
     const creditResult = await CreditsService.useCredits(

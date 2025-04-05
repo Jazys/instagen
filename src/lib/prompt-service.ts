@@ -13,10 +13,10 @@ export async function enhancePromptWithGPT(basePrompt: string): Promise<string> 
       apiKey: process.env.OPENAI_API_KEY,
     });
     
-    console.log('Enhancing prompt with GPT-4o-mini:', basePrompt);
+    console.log('Enhancing prompt with GPT-4o:', basePrompt);
     
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
