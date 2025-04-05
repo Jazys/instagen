@@ -4,6 +4,7 @@ import { CreditsService } from '@/lib/credits-service';
 import Replicate from 'replicate';
 import { supabase } from '@/lib/supabase';
 import { enhancePromptWithGPT, enhancePromptMock } from '@/lib/prompt-service';
+import { uploadImageFromDataUri, saveGeneration } from '@/lib/supabase-storage';
 // import Replicate from 'replicate';
 
 /**
@@ -215,10 +216,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
     const dataUri = `data:${contentType};base64,${base64Image}`;
     console.log("Data URI created (first 50 chars):", dataUri.substring(0, 50) + "...");
     
+    // Upload the image to Supabase Storage and get the public URL
+    let storedImageUrl;
+    let generationId;
+    try {
+      // Upload image to Supabase Storage
+      storedImageUrl = await uploadImageFromDataUri(dataUri, userId);
+      console.log("Image stored at:", storedImageUrl);
+      
+      // Save generation record to database
+      const generationRecord = await saveGeneration(
+        userId,
+        enhancedPrompt,
+        storedImageUrl
+      );
+      generationId = generationRecord.id;
+      console.log("Generation saved with ID:", generationId);
+    } catch (storageError) {
+      console.error("Failed to save to Supabase:", storageError);
+      // Continue with the response even if storage fails
+    }
+    
     // Return successful response with data URI instead of URL
     return res.status(200).json({
       success: true,
-      imageUrl: dataUri, // Send data URI instead of direct URL
+      imageUrl: dataUri, // Send data URI for immediate display
+      storedImageUrl, // Also send the stored URL for reference
+      generationId, // Send the generation ID for customization
       prompt: basePrompt,
       enhancedPrompt,
       message: 'Image generated successfully',
