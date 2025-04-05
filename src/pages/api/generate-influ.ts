@@ -27,6 +27,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  let token;
+
   try {
     // Check for token in the Authorization header if userId is not provided by middleware
     if (!userId) {
@@ -41,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
         });
       }
       
-      const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+      token = authHeader.substring(7); // Remove 'Bearer ' prefix
       console.log("Found token in Authorization header");
       
       try {
@@ -201,6 +203,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
     // Get the image URL from Replicate
     const imageUrl = Array.isArray(output) ? output[0] : output;
     console.log("Image URL from Replicate:", imageUrl);
+    //const imageUrl="https://sigmawire.net/i/04/usSHLp.jpg";
     
     // Convert the remote image to a base64 data URI
     const response = await fetch(imageUrl);
@@ -221,7 +224,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
     let generationId;
     try {
       // Upload image to Supabase Storage
-      storedImageUrl = await uploadImageFromDataUri(dataUri, userId);
+      storedImageUrl = await uploadImageFromDataUri(dataUri, userId, token || '');
       console.log("Image stored at:", storedImageUrl);
       
       // Save generation record to database

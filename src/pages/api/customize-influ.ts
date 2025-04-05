@@ -160,7 +160,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let generationId;
     try {
       // Upload image to Supabase Storage
-      storedImageUrl = await uploadImageFromDataUri(dataUri, userId);
+      storedImageUrl = await uploadImageFromDataUri(dataUri, userId, token);
       console.log("Image stored at:", storedImageUrl);
       
       // Save generation record to database

@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { v4 as uuidv4 } from 'uuid';
+import { createClient } from '@supabase/supabase-js'
 
 const STORAGE_BUCKET = 'generated-images';
 
@@ -11,7 +12,8 @@ const STORAGE_BUCKET = 'generated-images';
  */
 export async function uploadImageFromDataUri(
   dataUri: string,
-  userId: string
+  userId: string,
+  token: string
 ): Promise<string> {
   try {
     // Extract base64 content and determine file extension
@@ -27,12 +29,44 @@ export async function uploadImageFromDataUri(
     
     // Convert base64 to binary
     const binaryData = Buffer.from(base64Content, 'base64');
+
+    console.log("Token:", token);
+
+    const supabaseWithToken = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    );
+
+    {
+    const { data, error } = await supabaseWithToken.rpc('get_auth_uid');
+    if (error) {
+      console.error('Erreur lors de l\'appel de get_auth_uid:', error);
+    } else {
+      console.log('auth.uid() retourne:', data);
+    }}
+
+    console.log('Uploading image to Supabase:', userId, fileExtension);
+    
+    // More explicit handling of the user ID format
+    const userIdStr = userId.toString();
+    console.log("Using user ID for storage path:", userIdStr);
     
     // Generate a unique filename with user folder
-    const filename = `${userId}/${uuidv4()}.${fileExtension}`;
+    const filename = `${userIdStr}/${uuidv4()}.${fileExtension}`;
+    console.log("Generated filename for upload:", filename);
     
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
+  
+    
+    // Upload to Supabase Storage with explicit logging
+    console.log("Starting upload to bucket:", STORAGE_BUCKET);
+    const { data, error } = await supabaseWithToken.storage
       .from(STORAGE_BUCKET)
       .upload(filename, binaryData, {
         contentType: `image/${fileExtension}`,
@@ -40,12 +74,12 @@ export async function uploadImageFromDataUri(
       });
     
     if (error) {
-      console.error('Error uploading to Supabase:', error);
+      console.error('Error uploading to Supabase (detailed):', JSON.stringify(error));
       throw error;
     }
     
     // Get public URL
-    const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData } = supabaseWithToken.storage
       .from(STORAGE_BUCKET)
       .getPublicUrl(filename);
     
@@ -70,19 +104,15 @@ export async function saveGeneration(
   imageUrl: string,
   enhancedPromptExternal?: string
 ) {
-  const { data, error } = await supabase
-    .from('generations')
-    .insert({
-      user_id: userId,
-      enhanced_prompt: enhancedPrompt,
-      enhanced_prompt_external: enhancedPromptExternal || null,
-      image_url: imageUrl,
-    })
-    .select()
-    .single();
-  
+  const { data, error } = await supabase.rpc('save_generation', {
+    p_user_id: userId,
+    p_enhanced_prompt: enhancedPrompt,
+    p_image_url: imageUrl,
+    p_enhanced_prompt_external: enhancedPromptExternal,
+  });
+
   if (error) {
-    console.error('Error saving generation to database:', error);
+    console.error('Error saving generation via RPC:', error);
     throw error;
   }
   
@@ -117,9 +147,25 @@ export async function fetchUserGenerations(userId: string) {
  */
 export async function updateGenerationPrompt(
   generationId: string,
-  enhancedPromptExternal: string
+  enhancedPromptExternal: string,
+  token: string
 ) {
-  const { data, error } = await supabase
+
+  console.log("Token:", token);
+
+  const supabaseWithToken = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+    {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    }
+  );
+  
+  const { data, error } = await supabaseWithToken
     .from('generations')
     .update({ enhanced_prompt_external: enhancedPromptExternal })
     .eq('id', generationId)
