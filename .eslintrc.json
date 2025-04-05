@@ -2,5 +2,13 @@
   "extends": "next",
   "rules": {
     "react/no-unescaped-entities": "off"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/pages/api/**/*.ts"],
+      "rules": {
+        "react-hooks/rules-of-hooks": "off"
+      }
+    }
+  ]
 }
