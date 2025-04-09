@@ -7,7 +7,8 @@ import { uploadImageFromDataUri, saveGeneration } from '@/lib/supabase-storage';
  * 
  * Request body:
  * - imageDataUri: The data URI of the image to save
- * - enhancedPrompt: The prompt used for generation
+ * - enhancedPrompt: The original prompt used for generation (links variants to their model)
+ * - enhancedPromptExternal: Optional customization prompt for variants
  * 
  * Response:
  * - success: boolean
@@ -54,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log("Using user ID from token:", userId);
 
     // Extract image data and prompt from request
-    const { imageDataUri, enhancedPrompt } = req.body;
+    const { imageDataUri, enhancedPrompt, enhancedPromptExternal } = req.body;
 
     if (!imageDataUri || !enhancedPrompt) {
       return res.status(400).json({
@@ -74,10 +75,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const generationRecord = await saveGeneration(
       userId,
       enhancedPrompt,
-      storedImageUrl
+      storedImageUrl,
+      enhancedPromptExternal
     );
     const generationId = generationRecord.id;
     console.log("Generation saved with ID:", generationId);
+    
+    if (enhancedPromptExternal) {
+      console.log("Saved as variant with:");
+      console.log("- Original prompt:", enhancedPrompt);
+      console.log("- Customization:", enhancedPromptExternal);
+    } else {
+      console.log("Saved as base model with prompt:", enhancedPrompt);
+    }
     
     // Return successful response
     return res.status(200).json({

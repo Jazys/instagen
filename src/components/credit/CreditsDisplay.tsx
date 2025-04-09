@@ -196,13 +196,14 @@ export default function CreditsDisplay({ showUsageLogs = true }: CreditsDisplayP
         <div className="flex-1">
           <div className="text-3xl font-bold">{creditsRemaining}</div>
           <div className="text-sm text-gray-500">credits remaining</div>
-        </div>
+        </div>{/*
         <div className="flex-1">
           <div className="text-sm font-medium">Next Reset</div>
           <div className="text-gray-600">{formattedNextReset}</div>
-        </div>
+        </div> */} 
       </div>
-      
+
+      {/*
       <div className="border-t pt-4">
         <h3 className="text-lg font-medium mb-2">Use Credits</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -249,6 +250,7 @@ export default function CreditsDisplay({ showUsageLogs = true }: CreditsDisplayP
           </div>
         )}
       </div>
+      */} 
       
       {showUsageLogs && usageLogs.length > 0 && (
         <div className="border-t pt-4">
