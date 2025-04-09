@@ -173,6 +173,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       );
       generationId = generationRecord.id;
       console.log("Generation saved with ID:", generationId);
+      console.log("Enhanced prompt preserved:", enhancedPrompt);
+      console.log("Enhanced prompt external set to:", enhancedPromptExternal);
     } catch (storageError) {
       console.error("Failed to save to Supabase:", storageError);
       // Continue with the response even if storage fails

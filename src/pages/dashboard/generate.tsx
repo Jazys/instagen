@@ -26,6 +26,7 @@ export default function GeneratePage() {
   const [additionalPrompt, setAdditionalPrompt] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   const [currentGenerationId, setCurrentGenerationId] = useState<string | null>(null);
+  const [shouldRegenerateVariant, setShouldRegenerateVariant] = useState(false);
   
   // New state for person characteristics
   const [personCharacteristics, setPersonCharacteristics] = useState({
@@ -85,17 +86,67 @@ export default function GeneratePage() {
         router.query.prompt && 
         router.query.imageUrl && 
         router.query.generationId) {
-      // Set data from query parameters
-      setGeneratedPrompt(router.query.prompt as string);
-      setGeneratedPromptForAModel(router.query.prompt as string);
-      setCurrentImage(router.query.imageUrl as string);
-      setCurrentGenerationId(router.query.generationId as string);
-      
-      toast({
-        title: "Image Loaded",
-        description: "Image loaded from gallery. You can now regenerate or customize it.",
-        variant: "default",
-      });
+      try {
+        // Set data from query parameters - make sure to properly decode all URL parameters
+        const promptText = decodeURIComponent(router.query.prompt as string);
+        const basePromptText = router.query.basePrompt ? decodeURIComponent(router.query.basePrompt as string) : '';
+        const imageUrl = decodeURIComponent(router.query.imageUrl as string);
+        const generationId = router.query.generationId as string;
+        
+        // Check if this is a variant (from enhanced_prompt_external) or base model (from enhanced_prompt)
+        const isVariant = router.query.isVariant === 'true';
+        
+        // Check if we should regenerate or just load the image
+        // This allows us to differentiate between "Load" vs "Gen new Photo"
+        const shouldRegenerate = router.query.action === 'regenerate';
+        
+        console.log("=== Regeneration Parameters ===");
+        console.log("- prompt (decoded):", promptText);
+        console.log("- isVariant:", isVariant);
+        console.log("- basePrompt (decoded):", basePromptText);
+        console.log("- generationId:", generationId);
+        console.log("- action:", router.query.action || "view"); // Default action is just viewing
+        console.log("==============================");
+        
+        if (isVariant) {
+          // For variants, the promptText is enhanced_prompt_external
+          console.log("Loading variant with customization prompt:", promptText);
+          setGeneratedPrompt(promptText); // Display the customization in the UI
+          
+          // We need the original model prompt too
+          setGeneratedPromptForAModel(basePromptText || promptText);
+          
+          // Only set the regeneration flag if we're specifically asked to regenerate
+          // This way "Load" just displays the variant, while "Gen new Photo" regenerates
+          if (shouldRegenerate) {
+            console.log("Setting regeneration flag - will create a new variant");
+            setShouldRegenerateVariant(true);
+          } else {
+            console.log("Just loading the variant for viewing - no regeneration needed");
+          }
+        } else {
+          // For base models, promptText is enhanced_prompt
+          console.log("Loading base model with prompt:", promptText);
+          setGeneratedPrompt(promptText);
+          setGeneratedPromptForAModel(promptText);
+        }
+        
+        setCurrentImage(imageUrl);
+        setCurrentGenerationId(generationId);
+        
+        toast({
+          title: "Image Loaded",
+          description: isVariant ? "Variant loaded from gallery." : "Model loaded from gallery.",
+          variant: "default",
+        });
+      } catch (error) {
+        console.error('Error processing regeneration parameters:', error);
+        toast({
+          title: "Error",
+          description: "Failed to process image parameters properly. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   }, [router.query, toast]);
 
@@ -175,7 +226,7 @@ export default function GeneratePage() {
     }
   };
 
-  // Handle customization complete
+  // Handle customization complete - wrap with useCallback for stability
   const handleCustomizationComplete = async (enhancedPromptExternal: string, options: {
     background: BackgroundOption;
     clothingColor: ClothingColorOption;
@@ -195,9 +246,8 @@ export default function GeneratePage() {
           'Authorization': `Bearer ${freshSession?.access_token}`,
         },
         body: JSON.stringify({
-          // Use the enhanced prompt external if it exists (from previous customization)
-          // otherwise use the original enhanced prompt
-          enhancedPrompt: generatedPromptForAModel,
+          // Use the original enhanced prompt to maintain the model-variant relationship
+          enhancedPrompt: generatedPromptForAModel, // This is the ORIGINAL model prompt
           ...options,
         }),
       });
@@ -212,8 +262,13 @@ export default function GeneratePage() {
       // Update the image with the result
       setCurrentImage(data.imageUrl);
       
-      // Update the prompt
+      // IMPORTANT: Don't update generatedPromptForAModel here - it should stay as the original prompt
+      // Only update the display prompt with the customization
       setGeneratedPrompt(data.enhancedPromptExternal);
+      
+      // Save both values in case we need to create another variant
+      console.log("Preserving original prompt:", data.enhancedPrompt);
+      console.log("Using customization prompt for display:", data.enhancedPromptExternal);
       
       toast({
         title: "Customization Successful",
@@ -232,6 +287,137 @@ export default function GeneratePage() {
     }
   };
 
+  // New effect to auto-generate when a variant is loaded 
+  // Now placed AFTER handleCustomizationComplete is defined
+  useEffect(() => {
+    // Only proceed if we have all necessary data and should regenerate
+    if (shouldRegenerateVariant && 
+        generatedPrompt && 
+        generatedPromptForAModel && 
+        userId && 
+        !generating) {
+      
+      console.log("=== Auto-generating new image ===");
+      console.log("- Customization prompt (decoded):", generatedPrompt);
+      console.log("- Original model prompt (decoded):", generatedPromptForAModel);
+      console.log("================================");
+      
+      // Reset the flag to prevent repeated generation
+      setShouldRegenerateVariant(false);
+      
+      // Prepare the customization options based on the prompt
+      // This is a simple extraction, can be refined based on your prompt structure
+      let background = "urban";
+      let clothingColor = "blue";
+      let action = "standing";
+      
+      // Extract background if present in the prompt
+      if (generatedPrompt.includes("in a")) {
+        const backgroundMatch = generatedPrompt.match(/in a ([a-z\s]+) setting/i);
+        if (backgroundMatch && backgroundMatch[1]) {
+          background = backgroundMatch[1].trim();
+        }
+      }
+      
+      // Extract clothing color if present
+      if (generatedPrompt.includes("wearing")) {
+        const clothingMatch = generatedPrompt.match(/wearing ([a-z\s]+) clothes/i);
+        if (clothingMatch && clothingMatch[1]) {
+          clothingColor = clothingMatch[1].trim();
+        }
+      }
+      
+      // Extract action/pose if present
+      const poses = ['standing', 'sitting', 'walking', 'running', 'posing', 'jumping'];
+      for (const pose of poses) {
+        if (generatedPrompt.toLowerCase().includes(pose)) {
+          action = pose;
+          break;
+        }
+      }
+      
+      // Start the customization with extracted options
+      // We need to pass a descriptive customization prompt (not the same as the generated prompt)
+      // and ensure we're using the original model prompt
+      setCustomizing(false); // Ensure customizing UI is not showing
+      setGenerating(true);   // Set generating state to show loading
+      
+      // Log what we're sending to the API
+      console.log("=== Sending to API ===");
+      console.log("- Original model prompt used as enhancedPrompt:", generatedPromptForAModel);
+      console.log("- Background:", background);
+      console.log("- Clothing:", clothingColor);  
+      console.log("- Action:", action);
+      console.log("======================");
+      
+      // Call the API directly instead of using handleCustomizationComplete
+      const fetchCustomization = async () => {
+        try {
+          const freshSession = await getSession();
+
+          // Ensure the data we're sending to the API is clean and correctly formatted
+          const apiBody = {
+            // IMPORTANT: Use the original model prompt to maintain relationship
+            enhancedPrompt: generatedPromptForAModel,
+            background: background as BackgroundOption,
+            clothingColor: clothingColor as ClothingColorOption,
+            action: action as ActionOption
+          };
+          
+          console.log("API request body:", JSON.stringify(apiBody, null, 2));
+
+          // Call our customize API endpoint
+          const response = await fetch('/api/customize-influ', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${freshSession?.access_token}`,
+            },
+            body: JSON.stringify(apiBody),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to customize image');
+          }
+
+          const data = await response.json();
+          
+          // Update the image with the result
+          setCurrentImage(data.imageUrl);
+          
+          // CRITICAL: Keep the original model prompt for model relationship
+          console.log("=== API Response ===");
+          console.log("- Preserving original prompt:", data.enhancedPrompt);
+          console.log("- Setting display prompt to:", data.enhancedPromptExternal);
+          console.log("====================");
+          
+          // IMPORTANT: Don't update generatedPromptForAModel - it stays the original prompt
+          // Update the display prompt with the customization
+          setGeneratedPrompt(data.enhancedPromptExternal);
+          
+          toast({
+            title: "New Variant Created",
+            description: "Your customized influencer image has been generated!",
+            variant: "default",
+          });
+        } catch (error) {
+          console.error('Error in auto-generating customized image:', error);
+          toast({
+            title: "Generation Error",
+            description: error instanceof Error ? error.message : "An error occurred while generating the customized image",
+            variant: "destructive",
+          });
+        } finally {
+          setGenerating(false);
+        }
+      };
+      
+      // Execute the customization
+      fetchCustomization();
+    }
+  }, [shouldRegenerateVariant, generatedPrompt, generatedPromptForAModel, userId, generating, toast]);
+  
   // Handle saving image to Supabase
   const handleSaveImage = async () => {
     try {
@@ -258,7 +444,11 @@ export default function GeneratePage() {
         },
         body: JSON.stringify({
           imageDataUri: currentImage,
-          enhancedPrompt: generatedPrompt,
+          // IMPORTANT: Always use the original model prompt (generatedPromptForAModel)
+          // for the enhanced_prompt field to maintain model-variant relationships
+          enhancedPrompt: generatedPromptForAModel,
+          // If this is a customized variant, also pass the customization text
+          enhancedPromptExternal: generatedPrompt !== generatedPromptForAModel ? generatedPrompt : undefined
         }),
       });
 
@@ -319,7 +509,7 @@ export default function GeneratePage() {
       <main className="pt-24 min-h-screen bg-gradient-to-b from-background to-background/95">
         <div className="container py-8">
           <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold">AI Image Generator</h1>
+            <h1 className="text-3xl font-bold">Generate an influencer</h1>
           </div>
           
           <Card className="mb-6">
@@ -589,7 +779,7 @@ export default function GeneratePage() {
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
-                            Generate mon Influencer
+                            Generate My Influencer
                           </span>
                         )}
                       </Button>
@@ -641,11 +831,26 @@ export default function GeneratePage() {
                             Save to Gallery
                           </Button>
                           
+                          {router.query.regenerate === 'true' && (
+                            <Button 
+                              variant="outline"
+                              onClick={() => router.push('/dashboard/gallery')}
+                              className="flex items-center gap-2"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M19 12H5"></path>
+                                <path d="M12 19l-7-7 7-7"></path>
+                              </svg>
+                              Back to Gallery
+                            </Button>
+                          )}
+
                           {!customizing && currentGenerationId && (
                             <Button 
                               onClick={() => setCustomizing(true)}
                               variant="outline"
                               className="flex items-center gap-2"
+                              style={{ display: router.query.isVariant === 'true' ? 'none' : 'flex' }}
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-palette">
                                 <circle cx="13.5" cy="6.5" r=".5"></circle>
@@ -675,8 +880,10 @@ export default function GeneratePage() {
                     
                     {generatedPrompt && (
                       <div className="mt-4 w-full">
-                        <h3 className="font-medium mb-2">Generated Prompt:</h3>
-                        <p className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
+                        <h3 className="font-medium mb-2">
+                          {router.query.isVariant === 'true' ? 'Customization Prompt:' : 'Generated Prompt:'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground p-3 bg-muted rounded-md overflow-auto max-h-[200px]">
                           {generatedPrompt}
                         </p>
                       </div>

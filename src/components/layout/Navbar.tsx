@@ -101,7 +101,7 @@ export const Navbar = () => {
           {isClient && isLoggedIn && (
             <Button variant="ghost" asChild>
               <Link href="/dashboard/generate">
-                Manage influencer
+                Create Influencer
               </Link>
             </Button>
           )}
@@ -109,7 +109,7 @@ export const Navbar = () => {
           {isClient && isLoggedIn && (
             <Button variant="ghost" asChild>
               <Link href="/dashboard/gallery">
-                My Gallery
+                Manage influencers
               </Link>
             </Button>
           )}

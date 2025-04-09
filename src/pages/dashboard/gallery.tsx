@@ -13,6 +13,7 @@ export default function GalleryPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0); // Add a refresh key for forcing remounts
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -43,17 +44,73 @@ export default function GalleryPage() {
     checkAuth();
   }, [router, toast]);
 
+  // Add an effect that triggers a refresh when the component becomes visible again
+  useEffect(() => {
+    // This will run when the page is focused, which happens when returning to this page
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Force a refresh of the gallery component
+        setRefreshKey(prev => prev + 1);
+        console.log("Gallery refreshed due to page visibility change");
+      }
+    };
+
+    // Also refresh on router events
+    const handleRouteChange = () => {
+      if (router.pathname === '/dashboard/gallery') {
+        setRefreshKey(prev => prev + 1);
+        console.log("Gallery refreshed due to route change");
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    router.events.on('routeChangeComplete', handleRouteChange);
+
+    // Refresh immediately on mount
+    setRefreshKey(prev => prev + 1);
+    
+    // Cleanup
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      router.events.off('routeChangeComplete', handleRouteChange);
+    };
+  }, [router.pathname, router.events]);
+
   // Handle regeneration from gallery
-  const handleRegenerateFromPrompt = (prompt: string, imageUrl: string, generationId: string) => {
+  const handleRegenerateFromPrompt = (
+    prompt: string, 
+    imageUrl: string, 
+    generationId: string,
+    isVariant?: boolean,
+    basePrompt?: string,
+    action?: string
+  ) => {
     // Navigate to generate page with the selected data
+    const queryParams: Record<string, string> = {
+      regenerate: 'true',
+      prompt: encodeURIComponent(prompt),
+      imageUrl,
+      generationId
+    };
+    
+    // Add variant information if this is a variant
+    if (isVariant) {
+      queryParams.isVariant = 'true';
+      if (basePrompt) {
+        queryParams.basePrompt = encodeURIComponent(basePrompt);
+      }
+    }
+    
+    // Add action parameter if provided (view or regenerate)
+    if (action) {
+      queryParams.action = action;
+    }
+    
+    // Navigate to generate page
     router.push({
       pathname: '/dashboard/generate',
-      query: {
-        regenerate: 'true',
-        prompt,
-        imageUrl,
-        generationId
-      }
+      query: queryParams
     });
   };
 
@@ -98,6 +155,7 @@ export default function GalleryPage() {
           
           {userId && (
             <GenerationsGallery
+              key={refreshKey} // Add key to force remount when refreshKey changes
               userId={userId}
               onSelectForRegeneration={handleRegenerateFromPrompt}
             />

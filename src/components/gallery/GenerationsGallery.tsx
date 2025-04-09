@@ -20,11 +20,12 @@ interface Generation {
 interface ModelWithVariants {
   model: Generation;
   variants: Generation[];
+  isExpanded: boolean;
 }
 
 interface GenerationsGalleryProps {
   userId: string;
-  onSelectForRegeneration?: (prompt: string, imageUrl: string, generationId: string) => void;
+  onSelectForRegeneration?: (prompt: string, imageUrl: string, generationId: string, isVariant?: boolean, originalPrompt?: string, action?: string) => void;
 }
 
 export default function GenerationsGallery({ userId, onSelectForRegeneration }: GenerationsGalleryProps) {
@@ -78,31 +79,44 @@ export default function GenerationsGallery({ userId, onSelectForRegeneration }: 
 
   // Effect to organize generations into models and variants when generations state changes
   useEffect(() => {
-    organizeGenerations();
+    if (generations.length === 0) {
+      console.log('No generations to organize');
+      setGroupedGenerations([]);
+      return;
+    }
+    
+    const organized = organizeGenerations(generations);
+    setGroupedGenerations(organized);
+    
+    // Initialize expanded state for new models
+    const newExpandedState = { ...expandedModels };
+    organized.forEach(group => {
+      if (newExpandedState[group.model.id] === undefined) {
+        newExpandedState[group.model.id] = true; // Default to expanded
+      }
+    });
+    setExpandedModels(newExpandedState);
   }, [generations]);
 
-  // Group generations into models and variants
-  const organizeGenerations = () => {
-    console.log("Running organizeGenerations with:", generations);
-    
-    if (generations.length === 0) return;
+  // Organize generations into models and variants
+  const organizeGenerations = (generations: Generation[]): ModelWithVariants[] => {
+    console.log('Starting organization of generations:', generations.length);
     
     // Get all unique enhanced_prompt values
     const uniquePrompts = Array.from(new Set(generations.map(gen => gen.enhanced_prompt)));
-    console.log("Unique prompts:", uniquePrompts);
+    console.log('Unique prompts:', uniquePrompts);
     
-    // Handle case where ALL generations have enhanced_prompt_external (no natural base models)
-    let baseModels = generations.filter(gen => !gen.enhanced_prompt_external);
-    console.log("Natural base models:", baseModels);
+    // Find potential base models (generations without enhanced_prompt_external)
+    const baseModels = generations.filter(gen => !gen.enhanced_prompt_external);
+    console.log('Natural base models found:', baseModels.length);
     
-    // If no natural base models, create synthetic ones by taking the oldest generation for each prompt
+    // If no natural base models, create synthetic ones from the oldest generation of each prompt
+    let finalBaseModels: Generation[] = [];
     if (baseModels.length === 0) {
-      console.log("No natural base models found, creating synthetic ones");
-      
-      // Group by enhanced_prompt
-      const promptGroups: Record<string, Generation[]> = {};
+      console.log('No natural base models found, creating synthetic ones');
       
       // Group generations by their enhanced_prompt
+      const promptGroups: { [key: string]: Generation[] } = {};
       generations.forEach(gen => {
         if (!promptGroups[gen.enhanced_prompt]) {
           promptGroups[gen.enhanced_prompt] = [];
@@ -110,78 +124,73 @@ export default function GenerationsGallery({ userId, onSelectForRegeneration }: 
         promptGroups[gen.enhanced_prompt].push(gen);
       });
       
-      // For each unique prompt, take the oldest generation as a "base model"
-      baseModels = Object.values(promptGroups).map(group => {
-        // Sort by creation date (oldest first)
-        group.sort((a, b) => 
+      // For each group, select the oldest generation as a base model
+      Object.values(promptGroups).forEach(group => {
+        // Sort by created_at ascending to get the oldest first
+        const sortedGroup = [...group].sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
-        // Return the oldest generation for this prompt
-        return group[0];
+        if (sortedGroup.length > 0) {
+          finalBaseModels.push(sortedGroup[0]);
+          console.log('Adding synthetic base model:', sortedGroup[0].id, 'for prompt:', sortedGroup[0].enhanced_prompt);
+        }
       });
-      
-      console.log("Synthetic base models:", baseModels);
+    } else {
+      finalBaseModels = baseModels;
+      console.log('Using natural base models:', finalBaseModels.map(m => m.id));
     }
     
-    // All other generations are potential variants
-    // We need to filter out the base models from potential variants
-    const baseModelIds = baseModels.map(model => model.id);
-    const potentialVariants = generations.filter(gen => 
-      !baseModelIds.includes(gen.id)
+    // Filter out base models from potential variants
+    const potentialVariants = generations.filter(
+      gen => !finalBaseModels.some(base => base.id === gen.id)
     );
+    console.log('Potential variants after filtering:', potentialVariants.length);
     
-    console.log("Potential variants:", potentialVariants);
-    
-    // Organize into model and variants
-    const grouped: ModelWithVariants[] = [];
-    
-    // Process each base model
-    baseModels.forEach(model => {
-      // Find all variants that match this base model's prompt
-      const variants = potentialVariants.filter(variant => 
-        variant.enhanced_prompt === model.enhanced_prompt
+    // Group variants with their base models
+    const result = finalBaseModels.map(model => {
+      // Find variants that share the same enhanced_prompt as this model
+      const variants = potentialVariants.filter(
+        variant => variant.enhanced_prompt === model.enhanced_prompt
       );
       
-      console.log(`Model ${model.id} has ${variants.length} variants:`, variants);
+      console.log(`Model ${model.id} has ${variants.length} variants`);
       
-      grouped.push({
+      return {
         model,
-        variants
-      });
+        variants,
+        isExpanded: false
+      };
     });
     
-    // Sort by creation date (newest first)
-    grouped.sort((a, b) => 
-      new Date(b.model.created_at).getTime() - new Date(a.model.created_at).getTime()
-    );
-    
-    console.log("Final grouped generations:", grouped);
-    
-    setGroupedGenerations(grouped);
-    
-    // Initialize expanded state for new models
-    const newExpandedState = { ...expandedModels };
-    grouped.forEach(group => {
-      if (newExpandedState[group.model.id] === undefined) {
-        newExpandedState[group.model.id] = true; // Default to expanded
-      }
-    });
-    setExpandedModels(newExpandedState);
+    console.log('Final grouped generations:', result.length);
+    return result;
   };
 
   // Load generations from Supabase
   const loadGenerations = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await fetchUserGenerations(userId);
-      console.log("Loaded generations from Supabase:", data);
-      setGenerations(data);
+      const fetchedGenerations = await fetchUserGenerations(userId);
+      console.log('Fetched generations:', fetchedGenerations);
+      console.log('Number of generations fetched:', fetchedGenerations.length);
+      
+      setGenerations(fetchedGenerations);
+      
+      // Only organize if we have generations
+      if (fetchedGenerations.length > 0) {
+        const organized = organizeGenerations(fetchedGenerations);
+        console.log('Organized generations result:', organized);
+        setGroupedGenerations(organized);
+      } else {
+        console.log('No generations to organize');
+        setGroupedGenerations([]);
+      }
     } catch (error) {
-      console.error('Error fetching generations:', error);
+      console.error('Error loading generations:', error);
       toast({
-        title: "Error",
-        description: "Failed to load your generated images.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to load generations',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -237,8 +246,13 @@ export default function GenerationsGallery({ userId, onSelectForRegeneration }: 
   const handleCustomizationComplete = (generationId: string, enhancedPromptExternal: string) => {
     // Find the generation
     const generation = generations.find(gen => gen.id === generationId);
+    if (!generation) return;
     
-    // Update the local state
+    console.log(`Updating generation ${generationId}:`);
+    console.log(`- Preserving original enhanced_prompt: "${generation.enhanced_prompt}"`);
+    console.log(`- Setting enhanced_prompt_external to: "${enhancedPromptExternal}"`);
+    
+    // Update the local state - only modify enhanced_prompt_external, keep enhanced_prompt unchanged
     setGenerations(prev => prev.map(gen => 
       gen.id === generationId 
         ? { ...gen, enhanced_prompt_external: enhancedPromptExternal } 
@@ -248,12 +262,22 @@ export default function GenerationsGallery({ userId, onSelectForRegeneration }: 
     // Close the customizer
     setCustomizingId(null);
 
-    // If a regeneration handler is provided, call it with the new prompt, image URL, and generationId
+    // If a regeneration handler is provided, call it with proper parameters
     if (onSelectForRegeneration && generation) {
+      // When regenerating, we need to pass:
+      // 1. The new external prompt (customization)
+      // 2. The image URL
+      // 3. The generation ID
+      // 4. isVariant flag set to true - since we're creating a variant
+      // 5. Original enhanced_prompt as the basePrompt
+      // 6. action='regenerate' to indicate we want to generate a new image
       onSelectForRegeneration(
         enhancedPromptExternal,
         generation.image_url,
-        generationId
+        generationId,
+        true, // isVariant - mark this as a variant
+        generation.enhanced_prompt, // basePrompt - original prompt for model relationship
+        'regenerate' // Specify we want to regenerate, not just view
       );
     }
   };
@@ -346,7 +370,7 @@ export default function GenerationsGallery({ userId, onSelectForRegeneration }: 
                     <CardContent className="p-2">
                       <div className="flex items-center gap-2">
                         <div className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
-                          {group.model.enhanced_prompt_external ? 'First Image' : 'Model'}
+                          {group.model.enhanced_prompt_external ? 'My Influencer' : 'Model'}
                         </div>
                       </div>
                     </CardContent>
@@ -356,7 +380,7 @@ export default function GenerationsGallery({ userId, onSelectForRegeneration }: 
                         size="sm"
                         onClick={() => setCustomizingId(group.model.id)}
                       >
-                        Edit
+                        Gen new Photo
                       </Button>
                       {onSelectForRegeneration && (
                         <Button 
@@ -364,10 +388,13 @@ export default function GenerationsGallery({ userId, onSelectForRegeneration }: 
                           onClick={() => onSelectForRegeneration(
                             group.model.enhanced_prompt,
                             group.model.image_url,
-                            group.model.id
+                            group.model.id,
+                            false,
+                            undefined,
+                            'view' // Just view, don't regenerate
                           )}
                         >
-                          Load
+                          Edit
                         </Button>
                       )}
                     </CardFooter>
@@ -446,28 +473,22 @@ export default function GenerationsGallery({ userId, onSelectForRegeneration }: 
                                   </div>
                                 )}
                               </CardContent>
-                              <CardFooter className="flex justify-between p-1 gap-1">
+                              <CardFooter className="p-2 gap-2 flex-wrap justify-between items-center">
                                 <Button 
-                                  variant="outline" 
+                                  variant="default" 
                                   size="sm"
-                                  className="text-[10px] h-6 px-1"
-                                  onClick={() => setCustomizingId(variant.id)}
+                                  onClick={() => onSelectForRegeneration && onSelectForRegeneration(
+                                    variant.enhanced_prompt_external || variant.enhanced_prompt || '',
+                                    variant.image_url,
+                                    variant.id,
+                                    true,
+                                    variant.enhanced_prompt || '',
+                                    'view' // Just view, don't regenerate
+                                  )}
+                                  className="h-7 text-xs flex-1"
                                 >
-                                  Edit
-                                </Button>
-                                {onSelectForRegeneration && (
-                                  <Button 
-                                    size="sm"
-                                    className="text-[10px] h-6 px-1"
-                                    onClick={() => onSelectForRegeneration(
-                                      variant.enhanced_prompt_external || variant.enhanced_prompt,
-                                      variant.image_url,
-                                      variant.id
-                                    )}
-                                  >
-                                    Load
-                                  </Button>
-                                )}
+                                  Load
+                                </Button>                               
                               </CardFooter>
                             </Card>
                           ))}
