@@ -42,14 +42,6 @@ export const HeroSection = () => {
               Get Started <ArrowRight className='ml-2 w-4 h-4' />
             </Button>
           </Link>
-          <Button 
-            size='lg' 
-            variant='outline'
-            onClick={handleDemoLogin}
-            className='border-purple-600 text-purple-600 hover:bg-purple-50'
-          >
-            Try Demo
-          </Button>
         </div>
 
         <div className='w-full max-w-5xl mt-12 overflow-hidden'>

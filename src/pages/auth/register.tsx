@@ -411,18 +411,6 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input 
-                    id="fullName"
-                    name="fullName"
-                    type="text"
-                    placeholder="John Doe"
-                    value={formData.fullName}
-                    onChange={handleInputChange}
-                    required 
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
                   <Input 
                     id="password"

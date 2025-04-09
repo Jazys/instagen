@@ -23,6 +23,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  let token: string  = "";
+
   try {
     // Check for token in the Authorization header
     const authHeader = req.headers.authorization;
@@ -34,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
     
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    token = authHeader.substring(7); // Remove 'Bearer ' prefix
     console.log("Found token in Authorization header");
     
     // Validate the token using Supabase
@@ -65,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log("Starting upload to Supabase Storage");
     
     // Upload image to Supabase Storage
-    const storedImageUrl = await uploadImageFromDataUri(imageDataUri, userId);
+    const storedImageUrl = await uploadImageFromDataUri(imageDataUri, userId, token);
     console.log("Image stored at:", storedImageUrl);
     
     // Save generation record to database

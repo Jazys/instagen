@@ -6,6 +6,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { updateGenerationPrompt } from '@/lib/supabase-storage';
+import { getUser, getSession, STORAGE_KEY } from '@/lib/auth';
 
 // Types for customization options
 export type BackgroundOption = 'nature' | 'urban' | 'beach' | 'studio' | 'mountains' | 'indoor';
@@ -52,12 +53,16 @@ export default function ImageCustomizer({
     try {
       setLoading(true);
 
+      const userSession = await getSession();
+
+      console.log("User session:", userSession);
+
       // Create the external prompt by extending the base prompt
       const enhancedPromptExternal = `${enhancedPrompt}, wearing ${options.clothingColor} clothes, ${options.action} in a ${options.background} setting`;
 
       // If we have a generationId, update the record in the database
       if (generationId) {
-        await updateGenerationPrompt(generationId, enhancedPromptExternal);
+        await updateGenerationPrompt(generationId, enhancedPromptExternal, userSession?.access_token || '');
       }
 
       // Call the callback with the new prompt

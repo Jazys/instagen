@@ -490,3 +490,30 @@ CREATE POLICY "Users can upload their own images"
     auth.uid() = (storage.foldername(name))[1]::uuid 
     AND bucket_id = 'generated-images'
   );
+
+  CREATE OR REPLACE FUNCTION public.save_generation(
+  p_user_id uuid,
+  p_enhanced_prompt text,
+  p_image_url text,
+  p_enhanced_prompt_external text DEFAULT null
+) RETURNS public.generations AS $$
+DECLARE
+  inserted_row public.generations%rowtype;
+BEGIN
+  -- Optionnel : vous pouvez vérifier ici que p_user_id = auth.uid()
+  INSERT INTO public.generations (
+    user_id,
+    enhanced_prompt,
+    enhanced_prompt_external,
+    image_url
+  ) VALUES (
+    p_user_id,
+    p_enhanced_prompt,
+    p_enhanced_prompt_external,
+    p_image_url
+  )
+  RETURNING * INTO inserted_row;
+  
+  RETURN inserted_row;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
