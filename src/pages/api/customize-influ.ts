@@ -130,7 +130,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         input: {
           width: 1024,
           height: 1024,
-          prompt: enhancedPromptExternal
+          prompt: enhancedPromptExternal,
+          safety_tolerance:4 
         }
       }
     );
