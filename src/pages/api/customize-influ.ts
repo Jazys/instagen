@@ -93,7 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Credits required for this operation (less than initial generation)
-    const creditsRequired = 1;
+    const creditsRequired = 20;
     console.log(`Attempting to use ${creditsRequired} credits for user ${userId}`);
 
     // Check and consume credits

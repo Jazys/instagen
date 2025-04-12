@@ -80,7 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
     }
 
     // Credits required for this operation
-    const creditsRequired = 1; // Advanced generation costs more
+    const creditsRequired = 20; // Advanced generation costs more
 
     // Check and consume credits
     const creditResult = await CreditsService.useCredits(
@@ -193,7 +193,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
         input: {
           width: 1024,
           height: 1024,
-          prompt: enhancedPrompt // Use enhanced prompt instead of base prompt
+          prompt: enhancedPrompt,
+          safety_tolerance:4 // Use enhanced prompt instead of base prompt
         }
       }
     );

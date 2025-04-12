@@ -139,69 +139,175 @@ export default function ImageCustomizer({
             {/* Clothing Color */}
             <div className="space-y-3">
               <Label>👕 Clothing Color</Label>
-              <RadioGroup
-                value={options.clothingColor}
-                onValueChange={(value) => handleOptionChange('clothingColor', value)}
-                className="grid grid-cols-4 gap-2"
-                disabled={loading}
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="black" id="black" disabled={loading} />
-                  <Label htmlFor="black" className={`flex items-center ${loading ? 'opacity-50' : ''}`}>
-                    <span className="h-4 w-4 rounded-full bg-black inline-block mr-2"></span>
-                    Black
-                  </Label>
+              <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+                {/* Black */}
+                <div className="flex items-center">
+                  <input 
+                    type="radio" 
+                    id="black" 
+                    name="clothingColor" 
+                    value="black" 
+                    className="sr-only peer" 
+                    checked={options.clothingColor === 'black'} 
+                    onChange={() => handleOptionChange('clothingColor', 'black')}
+                    disabled={loading}
+                  />
+                  <label 
+                    htmlFor="black" 
+                    className={`flex items-center cursor-pointer p-1 rounded-full border-2 ${options.clothingColor === 'black' ? 'border-primary' : 'border-transparent'}`}
+                  >
+                    <span className="h-5 w-5 rounded-full bg-black"></span>
+                    <span className="ml-1 text-xs">Black</span>
+                  </label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="white" id="white" disabled={loading} />
-                  <Label htmlFor="white" className={`flex items-center ${loading ? 'opacity-50' : ''}`}>
-                    <span className="h-4 w-4 rounded-full bg-white border inline-block mr-2"></span>
-                    White
-                  </Label>
+                
+                {/* White */}
+                <div className="flex items-center">
+                  <input 
+                    type="radio" 
+                    id="white" 
+                    name="clothingColor" 
+                    value="white" 
+                    className="sr-only peer" 
+                    checked={options.clothingColor === 'white'} 
+                    onChange={() => handleOptionChange('clothingColor', 'white')}
+                    disabled={loading}
+                  />
+                  <label 
+                    htmlFor="white" 
+                    className={`flex items-center cursor-pointer p-1 rounded-full border-2 ${options.clothingColor === 'white' ? 'border-primary' : 'border-transparent'}`}
+                  >
+                    <span className="h-5 w-5 rounded-full bg-white border"></span>
+                    <span className="ml-1 text-xs">White</span>
+                  </label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="red" id="red" disabled={loading} />
-                  <Label htmlFor="red" className={`flex items-center ${loading ? 'opacity-50' : ''}`}>
-                    <span className="h-4 w-4 rounded-full bg-red-500 inline-block mr-2"></span>
-                    Red
-                  </Label>
+                
+                {/* Red */}
+                <div className="flex items-center">
+                  <input 
+                    type="radio" 
+                    id="red" 
+                    name="clothingColor" 
+                    value="red" 
+                    className="sr-only peer" 
+                    checked={options.clothingColor === 'red'} 
+                    onChange={() => handleOptionChange('clothingColor', 'red')}
+                    disabled={loading}
+                  />
+                  <label 
+                    htmlFor="red" 
+                    className={`flex items-center cursor-pointer p-1 rounded-full border-2 ${options.clothingColor === 'red' ? 'border-primary' : 'border-transparent'}`}
+                  >
+                    <span className="h-5 w-5 rounded-full bg-red-500"></span>
+                    <span className="ml-1 text-xs">Red</span>
+                  </label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="blue" id="blue" disabled={loading} />
-                  <Label htmlFor="blue" className={`flex items-center ${loading ? 'opacity-50' : ''}`}>
-                    <span className="h-4 w-4 rounded-full bg-blue-500 inline-block mr-2"></span>
-                    Blue
-                  </Label>
+                
+                {/* Blue */}
+                <div className="flex items-center">
+                  <input 
+                    type="radio" 
+                    id="blue" 
+                    name="clothingColor" 
+                    value="blue" 
+                    className="sr-only peer" 
+                    checked={options.clothingColor === 'blue'} 
+                    onChange={() => handleOptionChange('clothingColor', 'blue')}
+                    disabled={loading}
+                  />
+                  <label 
+                    htmlFor="blue" 
+                    className={`flex items-center cursor-pointer p-1 rounded-full border-2 ${options.clothingColor === 'blue' ? 'border-primary' : 'border-transparent'}`}
+                  >
+                    <span className="h-5 w-5 rounded-full bg-blue-500"></span>
+                    <span className="ml-1 text-xs">Blue</span>
+                  </label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="green" id="green" disabled={loading} />
-                  <Label htmlFor="green" className={`flex items-center ${loading ? 'opacity-50' : ''}`}>
-                    <span className="h-4 w-4 rounded-full bg-green-500 inline-block mr-2"></span>
-                    Green
-                  </Label>
+                
+                {/* Green */}
+                <div className="flex items-center">
+                  <input 
+                    type="radio" 
+                    id="green" 
+                    name="clothingColor" 
+                    value="green" 
+                    className="sr-only peer" 
+                    checked={options.clothingColor === 'green'} 
+                    onChange={() => handleOptionChange('clothingColor', 'green')}
+                    disabled={loading}
+                  />
+                  <label 
+                    htmlFor="green" 
+                    className={`flex items-center cursor-pointer p-1 rounded-full border-2 ${options.clothingColor === 'green' ? 'border-primary' : 'border-transparent'}`}
+                  >
+                    <span className="h-5 w-5 rounded-full bg-green-500"></span>
+                    <span className="ml-1 text-xs">Green</span>
+                  </label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="yellow" id="yellow" disabled={loading} />
-                  <Label htmlFor="yellow" className={`flex items-center ${loading ? 'opacity-50' : ''}`}>
-                    <span className="h-4 w-4 rounded-full bg-yellow-400 inline-block mr-2"></span>
-                    Yellow
-                  </Label>
+                
+                {/* Yellow */}
+                <div className="flex items-center">
+                  <input 
+                    type="radio" 
+                    id="yellow" 
+                    name="clothingColor" 
+                    value="yellow" 
+                    className="sr-only peer" 
+                    checked={options.clothingColor === 'yellow'} 
+                    onChange={() => handleOptionChange('clothingColor', 'yellow')}
+                    disabled={loading}
+                  />
+                  <label 
+                    htmlFor="yellow" 
+                    className={`flex items-center cursor-pointer p-1 rounded-full border-2 ${options.clothingColor === 'yellow' ? 'border-primary' : 'border-transparent'}`}
+                  >
+                    <span className="h-5 w-5 rounded-full bg-yellow-400"></span>
+                    <span className="ml-1 text-xs">Yellow</span>
+                  </label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="purple" id="purple" disabled={loading} />
-                  <Label htmlFor="purple" className={`flex items-center ${loading ? 'opacity-50' : ''}`}>
-                    <span className="h-4 w-4 rounded-full bg-purple-500 inline-block mr-2"></span>
-                    Purple
-                  </Label>
+                
+                {/* Purple */}
+                <div className="flex items-center">
+                  <input 
+                    type="radio" 
+                    id="purple" 
+                    name="clothingColor" 
+                    value="purple" 
+                    className="sr-only peer" 
+                    checked={options.clothingColor === 'purple'} 
+                    onChange={() => handleOptionChange('clothingColor', 'purple')}
+                    disabled={loading}
+                  />
+                  <label 
+                    htmlFor="purple" 
+                    className={`flex items-center cursor-pointer p-1 rounded-full border-2 ${options.clothingColor === 'purple' ? 'border-primary' : 'border-transparent'}`}
+                  >
+                    <span className="h-5 w-5 rounded-full bg-purple-500"></span>
+                    <span className="ml-1 text-xs">Purple</span>
+                  </label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="pink" id="pink" disabled={loading} />
-                  <Label htmlFor="pink" className={`flex items-center ${loading ? 'opacity-50' : ''}`}>
-                    <span className="h-4 w-4 rounded-full bg-pink-500 inline-block mr-2"></span>
-                    Pink
-                  </Label>
+                
+                {/* Pink */}
+                <div className="flex items-center">
+                  <input 
+                    type="radio" 
+                    id="pink" 
+                    name="clothingColor" 
+                    value="pink" 
+                    className="sr-only peer" 
+                    checked={options.clothingColor === 'pink'} 
+                    onChange={() => handleOptionChange('clothingColor', 'pink')}
+                    disabled={loading}
+                  />
+                  <label 
+                    htmlFor="pink" 
+                    className={`flex items-center cursor-pointer p-1 rounded-full border-2 ${options.clothingColor === 'pink' ? 'border-primary' : 'border-transparent'}`}
+                  >
+                    <span className="h-5 w-5 rounded-full bg-pink-500"></span>
+                    <span className="ml-1 text-xs">Pink</span>
+                  </label>
                 </div>
-              </RadioGroup>
+              </div>
             </div>
 
             {/* Action/Pose */}

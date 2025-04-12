@@ -197,8 +197,8 @@ export default function GeneratePage() {
       }
       
       toast({
-        title: "Génération réussie",
-        description: "Votre influenceur personnalisé a été créé avec succès!",
+        title: "Success",
+        description: "Your influencer has been created successfully!",
         variant: "default",
       });
     } catch (error) {
@@ -216,8 +216,8 @@ export default function GeneratePage() {
         }, 2000);
       } else {
         toast({
-          title: "Erreur de génération",
-          description: error instanceof Error ? error.message : "Une erreur s'est produite lors de la génération de l'image",
+          title: "Error",
+          description: error instanceof Error ? error.message : "An error occurred while generating the image",
           variant: "destructive",
         });
       }
@@ -516,7 +516,7 @@ export default function GeneratePage() {
             <CardHeader>
               <CardTitle>Credit Usage</CardTitle>
               <CardDescription>
-                Each image generation costs 1 credit, and customization costs 1 credits. Make sure you have enough credits before generating.
+                Each image generation costs 20 credits, and customization costs 20 credits. Make sure you have enough credits before generating.
               </CardDescription>
             </CardHeader>
           </Card>

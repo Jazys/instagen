@@ -18,24 +18,24 @@ const CREDIT_PACKS = [
   {
     id: 'small',
     name: 'Basic Pack',
-    credits: 100,
-    price: 10,
+    credits: 1000,
+    price: 19.99,
     description: 'Perfect for personal use and small projects',
     popular: false,
   },
   {
     id: 'medium',
     name: 'Pro Pack',
-    credits: 300,
-    price: 25,
+    credits: 2000,
+    price: 29.99,
     description: 'Great for regular users with more demanding needs',
     popular: true,
   },
   {
     id: 'large',
     name: 'Enterprise Pack',
-    credits: 1000,
-    price: 75,
+    credits: 6000,
+    price: 59.99,
     description: 'Best value for power users and businesses',
     popular: false,
   },
@@ -607,10 +607,8 @@ export default function CreditsPage() {
       <Navbar />
       <main className="pt-24 min-h-screen bg-gradient-to-b from-background to-background/95">
         <div className="container max-w-4xl mx-auto px-4">
-          <h1 className="text-3xl font-bold mb-6">Credits & Billing</h1>
-          
-          
-          <CreditsDisplay showUsageLogs={true} />
+          <h1 className="text-3xl font-bold mb-6">Billing & Credits</h1>         
+      
           
           {/* Credit Purchase Section */}
           <div className="mt-10 p-6 bg-white rounded-lg border shadow-sm">
@@ -635,7 +633,7 @@ export default function CreditsPage() {
                   )}
                   <div className="text-2xl font-bold mb-2">{pack.name}</div>
                   <div className="flex items-baseline mb-4">
-                    <span className="text-3xl font-extrabold">€{pack.price}</span>
+                    <span className="text-3xl font-extrabold">${pack.price}</span>
                     <span className="text-gray-500 ml-1">/one-time</span>
                   </div>
                   <div className="text-lg font-semibold mb-2">
@@ -670,6 +668,9 @@ export default function CreditsPage() {
               </p>
             </div>
           </div>
+
+              
+          <CreditsDisplay showUsageLogs={true} />
           
           <div className="mt-10 p-6 bg-white rounded-lg border shadow-sm">
             <h2 className="text-xl font-bold mb-4">How Credits Work</h2>
@@ -680,15 +681,9 @@ export default function CreditsPage() {
               </p>
               
               <ul className="list-disc pl-6 space-y-2">
-                <li><strong>Generate Image</strong> - 1 credit per standard image</li>
-                <li><strong>Process File</strong> - 2 credits per file</li>
-                <li><strong>Send Notification</strong> - 1 credit per 10 notifications</li>
-              </ul>
-              
-              <p>
-                Credits reset automatically on the 1st day of each month. Unused credits do not
-                roll over to the next month.
-              </p>
+                <li><strong>Generate Image</strong> - 20 credit per standard image</li>
+              </ul>              
+         
               
               <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
                 <h3 className="text-lg font-medium text-blue-800 mb-2">Need More Credits?</h3>
