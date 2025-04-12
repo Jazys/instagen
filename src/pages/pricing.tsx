@@ -5,6 +5,7 @@ import { Navbar } from "@/components/layout/Navbar"
 import Head from "next/head"
 import { ComparisonTable } from '@/components/pricing/ComparisonTable'
 import { Footer } from "@/components/layout/Footer"
+import Link from "next/link"
 
 export default function PricingPage() {
   const tiers = [
@@ -15,7 +16,7 @@ export default function PricingPage() {
       features: [
         "Create 1 AI influencer",
         "Basic customization options",
-        "5 AI-generated photos per month",
+        "5 AI-generated photos",
         "Community support"
       ],
       cta: "Get Started",
@@ -23,36 +24,19 @@ export default function PricingPage() {
     },
     {
       name: "Professional",
-      price: "$29",
-      period: "per month",
+      price: "$19.99 to $59.99",
+      period: "per pack",
       description: "Ideal for serious content creators",
       features: [
         "Create 3 AI influencers",
         "Advanced customization options",
-        "50 AI-generated photos per month",
+        "Up to 300 AI-generated photos",
         "Priority support",
         "Brand collaboration tools",
         "Analytics dashboard"
       ],
       cta: "Start Pro Plan",
       highlight: true
-    },
-    {
-      name: "Business",
-      price: "$99",
-      period: "per month",
-      description: "For agencies and professional teams",
-      features: [
-        "Create 10 AI influencers",
-        "Full customization suite",
-        "Unlimited AI-generated photos",
-        "24/7 Priority support",
-        "Advanced brand tools",
-        "Custom API access",
-        "Team collaboration features"
-      ],
-      cta: "Contact Sales",
-      highlight: false
     }
   ]
 
@@ -73,7 +57,7 @@ export default function PricingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 gap-8">
             {tiers.map((tier, i) => (
               <Card 
                 key={i} 
@@ -109,16 +93,18 @@ export default function PricingPage() {
                   </ul>
                 </CardContent>
                 <CardFooter>
-                  <Button 
-                    className={`w-full ${
-                      tier.highlight 
-                        ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" 
-                        : ""
-                    }`}
-                    variant={tier.highlight ? "default" : "outline"}
-                  >
-                    {tier.cta}
-                  </Button>
+                  <Link href="/auth/register" passHref className="w-full">
+                    <Button 
+                      className={`w-full ${
+                        tier.highlight 
+                          ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" 
+                          : ""
+                      }`}
+                      variant={tier.highlight ? "default" : "outline"}
+                    >
+                      {tier.cta}
+                    </Button>
+                  </Link>
                 </CardFooter>
               </Card>
             ))}
@@ -134,9 +120,11 @@ export default function PricingPage() {
             <p className="text-muted-foreground mb-6">
               Need a custom solution? We offer tailored packages for large organizations.
             </p>
-            <Button variant="outline" size="lg">
-              Contact Enterprise Sales
-            </Button>
+            <Link href="/login" passHref>
+              <Button variant="outline" size="lg">
+                Contact Enterprise Sales
+              </Button>
+            </Link>
           </div>
         </div>
       </main>

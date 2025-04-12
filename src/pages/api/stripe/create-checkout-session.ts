@@ -13,9 +13,9 @@ try {
 }
 
 const CREDIT_PACKS = {
-  'small': { credits: 100, price: 1000 }, // 10 EUR (price in cents)
-  'medium': { credits: 300, price: 2500 }, // 25 EUR
-  'large': { credits: 1000, price: 7500 }, // 75 EUR
+  'small': { credits: 1000, price: 1999 }, // 19.99 USD (price in cents)
+  'medium': { credits: 2000, price: 2999 }, // 29.99 USD
+  'large': { credits: 6000, price: 5999 }, // 59.99 USD
 };
 
 type CreditPackKey = keyof typeof CREDIT_PACKS;
@@ -122,7 +122,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         line_items: [
           {
             price_data: {
-              currency: 'eur',
+              currency: 'usd',
               product_data: {
                 name: `${pack.credits} Credits`,
                 description: 'Digital credits for Instagen platform',

@@ -7,38 +7,32 @@ export const ComparisonTable = () => {
     {
       name: "AI Influencer Creation",
       starter: "1 influencer",
-      pro: "3 influencers",
-      business: "10 influencers"
+      pro: "3 influencers" 
     },
     {
       name: "Monthly AI Photos",
       starter: "5 photos",
-      pro: "50 photos",
-      business: "Unlimited"
+      pro: "300 photos",
     },
     {
       name: "Customization Options",
       starter: "Basic",
       pro: "Advanced",
-      business: "Full Suite"
     },
     {
       name: "Brand Collaboration Tools",
       starter: false,
       pro: true,
-      business: true
     },
     {
       name: "Analytics Dashboard",
       starter: false,
       pro: true,
-      business: true
     },
     {
       name: "API Access",
       starter: false,
       pro: false,
-      business: true
     }
   ]
 
@@ -49,8 +43,7 @@ export const ComparisonTable = () => {
           <TableRow>
             <TableHead className="w-[300px]">Features</TableHead>
             <TableHead>Starter</TableHead>
-            <TableHead>Professional</TableHead>
-            <TableHead>Business</TableHead>
+            <TableHead>Professional</TableHead>          
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -78,18 +71,7 @@ export const ComparisonTable = () => {
                 ) : (
                   feature.pro
                 )}
-              </TableCell>
-              <TableCell>
-                {typeof feature.business === "boolean" ? (
-                  feature.business ? (
-                    <Check className="w-5 h-5 text-primary" />
-                  ) : (
-                    <X className="w-5 h-5 text-muted-foreground" />
-                  )
-                ) : (
-                  feature.business
-                )}
-              </TableCell>
+              </TableCell>      
             </TableRow>
           ))}
         </TableBody>

@@ -144,9 +144,9 @@ export default function DashboardPage() {
                   Generate
                 </Button>
               </Link>
-              <Link href="/dashboard/profile">
-                <Button variant="outline">
-                  Profile
+              <Link href="/dashboard/credits">
+              <Button variant="outline" className="bg-green-600 hover:bg-green-700 text-white">
+                  Buy Credits
                 </Button>
               </Link>
               
@@ -208,16 +208,12 @@ export default function DashboardPage() {
                   <p className="text-3xl font-bold">{creditsLoading ? '...' : creditsRemaining}</p>
                   <p className="text-sm text-muted-foreground">credits remaining</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">Next Reset</p>
-                  <p className="text-sm text-muted-foreground">{creditsLoading ? '...' : formattedNextReset}</p>
-                </div>
               </div>
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-sm text-muted-foreground">Need more credits?</p>
                   <div className="flex space-x-2 mt-2">
-                    {/* Custom Quick Test Button */}
+                    {/* Custom Quick Test Button 
                     <Button 
                       variant="secondary"
                       size="sm"
@@ -299,15 +295,10 @@ export default function DashboardPage() {
                       }}
                     >
                       Use 1 test credit
-                    </Button>
+                    </Button>*/}
                   </div>
                 </div>
-                <div className="flex space-x-2">
-                  <Link href="/dashboard/profile">
-                    <Button variant="outline" size="sm">
-                      Profile
-                    </Button>
-                  </Link>
+                <div className="flex space-x-2">         
                   <Link href="/dashboard/credits">
                     <Button className="bg-green-600 hover:bg-green-700" size="sm">
                       Buy Credits

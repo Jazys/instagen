@@ -106,39 +106,41 @@ export default function GenerationsGallery({ userId, onSelectForRegeneration }: 
     const uniquePrompts = Array.from(new Set(generations.map(gen => gen.enhanced_prompt)));
     console.log('Unique prompts:', uniquePrompts);
     
-    // Find potential base models (generations without enhanced_prompt_external)
-    const baseModels = generations.filter(gen => !gen.enhanced_prompt_external);
-    console.log('Natural base models found:', baseModels.length);
+    // Instead of relying solely on enhanced_prompt_external to find base models,
+    // we'll create a base model for each unique prompt to ensure all influencers are displayed
     
-    // If no natural base models, create synthetic ones from the oldest generation of each prompt
-    let finalBaseModels: Generation[] = [];
-    if (baseModels.length === 0) {
-      console.log('No natural base models found, creating synthetic ones');
+    // Group generations by their enhanced_prompt
+    const promptGroups: { [key: string]: Generation[] } = {};
+    generations.forEach(gen => {
+      if (!promptGroups[gen.enhanced_prompt]) {
+        promptGroups[gen.enhanced_prompt] = [];
+      }
+      promptGroups[gen.enhanced_prompt].push(gen);
+    });
+    
+    // For each unique prompt group, select the best candidate for base model
+    const finalBaseModels: Generation[] = [];
+    
+    Object.entries(promptGroups).forEach(([prompt, group]) => {
+      // First try to find a natural base model (without enhanced_prompt_external)
+      const naturalBaseModel = group.find(gen => !gen.enhanced_prompt_external);
       
-      // Group generations by their enhanced_prompt
-      const promptGroups: { [key: string]: Generation[] } = {};
-      generations.forEach(gen => {
-        if (!promptGroups[gen.enhanced_prompt]) {
-          promptGroups[gen.enhanced_prompt] = [];
-        }
-        promptGroups[gen.enhanced_prompt].push(gen);
-      });
-      
-      // For each group, select the oldest generation as a base model
-      Object.values(promptGroups).forEach(group => {
-        // Sort by created_at ascending to get the oldest first
+      if (naturalBaseModel) {
+        finalBaseModels.push(naturalBaseModel);
+        console.log('Adding natural base model:', naturalBaseModel.id, 'for prompt:', prompt);
+      } else {
+        // If no natural base model, use the oldest generation as a synthetic one
         const sortedGroup = [...group].sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
         if (sortedGroup.length > 0) {
           finalBaseModels.push(sortedGroup[0]);
-          console.log('Adding synthetic base model:', sortedGroup[0].id, 'for prompt:', sortedGroup[0].enhanced_prompt);
+          console.log('Adding synthetic base model:', sortedGroup[0].id, 'for prompt:', prompt);
         }
-      });
-    } else {
-      finalBaseModels = baseModels;
-      console.log('Using natural base models:', finalBaseModels.map(m => m.id));
-    }
+      }
+    });
+    
+    console.log('Total base models created:', finalBaseModels.length);
     
     // Filter out base models from potential variants
     const potentialVariants = generations.filter(
