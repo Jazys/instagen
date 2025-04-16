@@ -20,7 +20,7 @@ export async function enhancePromptWithGPT(basePrompt: string): Promise<string> 
       messages: [
         {
           role: "system",
-          content: "You are an expert at creating hyper-detailed, photorealistic prompts for AI image generation systems. Your goal is to generate a breathtakingly realistic image of a person using only their physical attributes. Do not include any information about clothing, accessories, environment, background, or pose. Focus solely on anatomical and facial features, skin texture, hair characteristics, and other distinct physical traits. Make the description vivid, rich, and layered to help the AI render a truly lifelike image. The person should appear as a modern influencer, with photorealistic lighting, detailed skin, natural imperfections, and camera-like depth"
+          content: "You are an expert at creating highly detailed, photorealistic prompts for AI image generation systems. Your goal is to generate a lifelike full-body portrait of a person, focusing on their facial features, body structure, skin tone, posture, and hair characteristics. Avoid any mention of clothing, accessories, or background. Ensure the image remains tasteful, respectful, and non-explicit. Emphasize natural realism, including subtle imperfections like skin texture, body asymmetry, or small details that add authenticity. The person should resemble a modern influencer, captured with realistic lighting, full-body framing, and cinematic depth of field"
         },
         {
           role: "user",
