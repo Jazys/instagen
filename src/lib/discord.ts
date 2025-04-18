@@ -6,7 +6,7 @@
  * Sends a notification to Discord when a new user signs up
  * @param user User information to include in the notification
  */
-export async function notifyDiscordNewUser(user: {
+export async function notifyDiscordUserInfo(user: {
   id: string;
   email?: string;
   created_at?: string;

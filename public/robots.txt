@@ -1,0 +1,6 @@
+# Allow all web crawlers
+User-agent: *
+Allow: /
+
+# Sitemap location - Replace with your actual domain
+Sitemap: https://instagen.me/sitemap.xml 
