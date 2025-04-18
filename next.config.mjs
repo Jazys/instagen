@@ -10,6 +10,15 @@ const nextConfig = {
       },
     ],
   },
+  // Add rewrites for sitemap and robots.txt
+  async rewrites() {
+    return [
+      {
+        source: '/sitemap.xml',
+        destination: '/api/sitemap',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

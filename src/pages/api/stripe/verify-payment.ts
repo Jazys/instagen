@@ -1,10 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import Stripe from 'stripe';
 import { supabase } from '@/lib/supabase';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-01-27.acacia',
-});
+import { stripe } from '@/lib/stripe'; // Import du client Stripe centralisé
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {

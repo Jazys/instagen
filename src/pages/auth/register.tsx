@@ -12,6 +12,7 @@ import { useRouter } from "next/router"
 import { useToast } from "@/components/ui/use-toast"
 import { STORAGE_KEY, getSession, BASE_URL } from "@/lib/auth"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { notifyDiscordUserInfo } from "@/lib/discord"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -204,6 +205,23 @@ export default function RegisterPage() {
       if (authData?.user) {
         // Store the registered email for the confirmation dialog
         setRegisteredEmail(formData.email);
+        
+        // Notify Discord about the new user registration
+        try {
+          await notifyDiscordUserInfo({
+            id: authData.user.id,
+            email: formData.email,
+            created_at: new Date().toISOString(),
+            user_metadata: {
+              full_name: formData.fullName,
+              username: formData.username
+            }
+          });
+          console.log("Discord notification sent for new user");
+        } catch (discordError) {
+          // Don't block registration if Discord notification fails
+          console.error("Failed to send Discord notification:", discordError);
+        }
         
         // Give the database trigger time to complete (longer wait to ensure trigger completes)
         console.log("User created, waiting for database trigger to complete...");

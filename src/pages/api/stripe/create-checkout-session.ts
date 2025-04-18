@@ -1,16 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import Stripe from 'stripe';
 import { supabase } from '@/lib/supabase';
-
-// Initialize Stripe
-let stripe: Stripe;
-try {
-  stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'missing_key', {
-    apiVersion: '2025-01-27.acacia',
-  });
-} catch (error) {
-  // We'll handle this in the API route when it's called
-}
+import { stripe } from '@/lib/stripe'; // Import du client Stripe centralisé
 
 const CREDIT_PACKS = {
   'small': { credits: 1000, price: 1999 }, // 19.99 USD (price in cents)

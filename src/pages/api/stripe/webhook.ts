@@ -4,17 +4,15 @@ import Stripe from 'stripe';
 import { supabase } from '@/lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '@/lib/database.types';
-
+import { stripe } from '@/lib/stripe'; // Import du client Stripe centralisé
+import { notifyDiscordUserInfo } from '@/lib/discord';
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-01-27.acacia',
-});
-
+// Utilisation directe du client Stripe importé
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 // Simple logging function for webhook events
@@ -179,6 +177,13 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
         payment_id: session.id,
         notes: 'Credit purchase via Stripe webhook',
         created_at: new Date().toISOString()
+      });
+
+      await notifyDiscordUserInfo({
+        id: userId,
+        email: "",
+        created_at: new Date().toISOString(),
+        credit_balance: newCreditBalance
       });
     
   } catch (error) {

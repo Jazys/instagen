@@ -27,7 +27,7 @@ ARG NODE_ENV
 ARG STRIPE_SECRET_KEY
 ARG REPLICATE_API_TOKEN
 ARG OPENAI_API_KEY
-
+ARG NEXT_PUBLIC_DISCORD_WEBHOOK_URL
 RUN echo ${NEXT_PUBLIC_BASE_URL}
 
 # Write the values to .env.local which Next.js prioritizes
@@ -40,7 +40,8 @@ RUN echo "NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}" > .env.local && 
     echo "NODE_ENV=${NODE_ENV}" >> .env.local && \
     echo "STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}" >> .env.local && \
     echo "REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN}" >> .env.local && \
-    echo "OPENAI_API_KEY=${OPENAI_API_KEY}" >> .env.local
+    echo "OPENAI_API_KEY=${OPENAI_API_KEY}" >> .env.local && \
+    echo "NEXT_PUBLIC_DISCORD_WEBHOOK_URL=${NEXT_PUBLIC_DISCORD_WEBHOOK_URL}" >> .env.local
 
 ENV NEXT_TELEMETRY_DISABLED 1
 
